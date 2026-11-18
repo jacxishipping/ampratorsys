@@ -1,0 +1,368 @@
+export interface VinSearchResult {
+  id: string;
+  vin: string;
+  year?: number | null;
+  make?: string | null;
+  model?: string | null;
+  color?: string | null;
+  vehicleType?: string | null;
+  lotNumber?: string | null;
+  auctionName?: string | null;
+  hasKey?: boolean | null;
+  hasTitle?: boolean | null;
+  titleStatus?: string | null;
+  status: string;
+  workflowStage?: string;
+  currentLocation?: string | null;
+  customer?: {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  container?: {
+    id?: string;
+    containerNumber: string;
+    bookingNumber?: string | null;
+    shippingLine?: string | null;
+    vesselName?: string | null;
+    voyageNumber?: string | null;
+    loadingPort?: string | null;
+    destinationPort?: string | null;
+    loadingDate?: string | null;
+    departureDate?: string | null;
+    estimatedArrival?: string | null;
+    actualArrival?: string | null;
+    status?: string | null;
+    currentLocation?: string | null;
+    progress?: number | null;
+  } | null;
+  dispatch?: {
+    id?: string;
+    referenceNumber?: string | null;
+    origin?: string | null;
+    destination?: string | null;
+    carrier?: string | null;
+    status?: string | null;
+    dispatchDate?: string | null;
+  } | null;
+  transit?: {
+    id?: string;
+    referenceNumber?: string | null;
+    origin?: string | null;
+    destination?: string | null;
+    carrier?: string | null;
+    status?: string | null;
+    dispatchDate?: string | null;
+    actualDelivery?: string | null;
+  } | null;
+  photos?: {
+    vehiclePhotosCount: number;
+    arrivalPhotosCount: number;
+    previewUrl?: string | null;
+  };
+  financials?: {
+    price?: number | null;
+    purchasePrice?: number | null;
+    paymentStatus?: string | null;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  webAppUrl: string;
+  trackingEvents?: Array<{
+    timestamp?: string;
+    status: string;
+    location?: string;
+    description?: string;
+    actual: boolean;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface ContainerSearchResult {
+  id: string;
+  containerNumber: string;
+  bookingNumber?: string | null;
+  trackingNumber?: string | null;
+  shippingLine?: string | null;
+  vesselName?: string | null;
+  voyageNumber?: string | null;
+  status: string;
+  loadingPort?: string | null;
+  destinationPort?: string | null;
+  transshipmentPorts?: string[];
+  loadingDate?: string | null;
+  departureDate?: string | null;
+  estimatedArrival?: string | null;
+  actualArrival?: string | null;
+  currentLocation?: string | null;
+  progress?: number | null;
+  maxCapacity?: number | null;
+  shipmentCount: number;
+  shipments: Array<{
+    id: string;
+    vin?: string | null;
+    vehicle: string;
+    lotNumber?: string | null;
+    status: string;
+    customerName?: string | null;
+    hasKey?: boolean | null;
+    hasTitle?: boolean | null;
+    titleStatus?: string | null;
+    weight?: number | null;
+  }>;
+  webAppUrl: string;
+  trackingEvents?: Array<{
+    timestamp?: string;
+    status: string;
+    location?: string;
+    description?: string;
+    actual: boolean;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface TrackingResult {
+  requestedNumber: string;
+  resolvedType: 'VIN_SHIPMENT' | 'CONTAINER' | 'UNKNOWN';
+  containerNumber?: string;
+  containerType?: string;
+  shipmentStatus?: string;
+  origin?: string;
+  originDate?: string;
+  pol?: string;
+  polDate?: string;
+  destination?: string;
+  destinationDate?: string;
+  pod?: string;
+  podDate?: string;
+  estimatedDeparture?: string;
+  estimatedArrival?: string;
+  company?: { name?: string; url?: string | null };
+  currentLocation?: string;
+  lastUpdated?: string;
+  progress?: number | null;
+  webAppUrl?: string;
+  events: Array<{
+    id: string;
+    status: string;
+    location?: string;
+    timestamp?: string;
+    actual: boolean;
+    vessel?: string;
+    voyage?: string;
+    description?: string;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface ShippingStats {
+  totalShipments: number;
+  totalContainers: number;
+  shipmentsByStatus: Record<string, number>;
+  containersByStatus: Record<string, number>;
+  activeOceanContainers: number;
+  yardOnHandShipments: number;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface CustomerSearchResult {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  city: string | null;
+  country: string | null;
+  loginCode: string | null;
+  role: string;
+  shipmentCount: number;
+  shipments: Array<{
+    id: string;
+    vin: string | null;
+    vehicle: string;
+    status: string;
+    containerNumber: string | null;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface DispatchSearchResult {
+  id: string;
+  referenceNumber: string;
+  status: string;
+  origin: string;
+  destination: string;
+  carrierName: string | null;
+  dispatchDate: string | null;
+  estimatedArrival: string | null;
+  shipmentCount: number;
+  vehicles: Array<{
+    id: string;
+    vin: string | null;
+    vehicle: string;
+    lotNumber: string | null;
+    status: string;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface QuoteEstimateResult {
+  vehicleType: string;
+  originPort: string;
+  destination: string;
+  oceanFreightUsd: number;
+  inlandTowingEstimateUsd: number;
+  customsAndTransitUsd: number;
+  totalEstimatedUsd: number;
+  estimatedTransitDays: string;
+  notes: string[];
+}
+
+export interface TransitSearchResult {
+  id: string;
+  referenceNumber: string;
+  status: string;
+  origin: string;
+  destination: string;
+  companyName: string | null;
+  dispatchDate: string | null;
+  estimatedDelivery: string | null;
+  actualDelivery: string | null;
+  cost: number | null;
+  shipmentCount: number;
+  vehicles: Array<{
+    id: string;
+    vin: string | null;
+    vehicle: string;
+    status: string;
+  }>;
+  events: Array<{
+    id: string;
+    status: string;
+    location: string | null;
+    description: string | null;
+    eventDate: string;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface CustomerLedgerResult {
+  customerId: string;
+  customerName: string | null;
+  customerEmail: string;
+  loginCode: string | null;
+  collectionStatus: string;
+  promiseToPayDate: string | null;
+  currentBalance: number;
+  totalDebits: number;
+  totalCredits: number;
+  unpaidInvoicesCount: number;
+  unpaidInvoicesAmount: number;
+  recentEntries: Array<{
+    id: string;
+    transactionDate: string;
+    description: string;
+    type: string;
+    amount: number;
+    balance: number;
+    shipmentVin?: string | null;
+  }>;
+  invoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    total: number;
+    amountPaid: number;
+    amountRemaining: number;
+    issueDate: string;
+    dueDate: string | null;
+    pdfDownloadUrl?: string;
+    pdfViewUrl?: string;
+  }>;
+  statementPrintUrl?: string;
+  statementDownloadUrl?: string;
+  dataSource: 'database' | 'snapshot';
+}
+
+export interface InvoiceSearchResult {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  containerNumber: string | null;
+  shipmentVin: string | null;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  amountPaid: number;
+  amountRemaining: number;
+  currency: string;
+  issueDate: string;
+  dueDate: string | null;
+  paidDate: string | null;
+  pdfDownloadUrl?: string;
+  pdfViewUrl?: string;
+  lineItems: Array<{
+    description: string;
+    type: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+  }>;
+  dataSource: 'database' | 'snapshot';
+}
+
+export interface DocumentSearchResult {
+  id: string;
+  name: string;
+  category: string;
+  fileUrl: string;
+  fileType: string;
+  shipmentVin: string | null;
+  containerNumber: string | null;
+  uploadedBy: string;
+  createdAt: string;
+  downloadUrl?: string;
+}
+
+export interface OfficeExpenseItem {
+  id: string;
+  title: string;
+  category: string;
+  amount: number;
+  currency: string;
+  expenseDate: string;
+  paymentMethod: string;
+  vendor: string | null;
+  referenceNumber: string | null;
+  receiptUrl: string | null;
+  notes: string | null;
+  status: string;
+  recordedBy: string | null;
+  createdAt: string;
+}
+
+export interface McpToolMetadata {
+  name: string;
+  category:
+    | 'Search'
+    | 'Tracking'
+    | 'Operations'
+    | 'Mutations & Admin'
+    | 'Accounting & Billing'
+    | 'Live Scrapers & AIS'
+    | 'Documents & Alerts'
+    | 'Analytics'
+    | 'Quotes';
+  description: string;
+  parameters: Array<{
+    name: string;
+    type: string;
+    required: boolean;
+    description: string;
+    defaultValue?: string;
+  }>;
+  sampleArgs: Record<string, any>;
+}

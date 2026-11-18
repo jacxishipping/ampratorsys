@@ -1,0 +1,809 @@
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import {
+  Plus,
+  Check,
+  X,
+  Download,
+  Printer,
+  Filter,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Truck,
+  Trash2,
+  Edit2,
+  FileText,
+  FileSpreadsheet,
+  BookOpen,
+} from 'lucide-react';
+import { Alert, Button, FormField, IconButton, Modal, PageHeader, Select, StatsCard, TableSkeleton, Tooltip, toast } from '@/components/design-system';
+import { DataTable, Column } from '@/components/ui/DataTable';
+import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { hasPermission } from '@/lib/rbac';
+import { formatMoney as formatCurrency } from '@/lib/format';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
+
+interface LedgerEntry {
+  id: string;
+  user?: { id: string; name: string | null; email: string } | null;
+  transactionDate: string;
+  description: string;
+  type: 'DEBIT' | 'CREDIT';
+  transactionInfoType?: TransactionInfoType;
+  amount: number;
+  balance: number;
+  notes?: string;
+  metadata?: Record<string, unknown>;
+  shipment?: {
+    id: string;
+    vehicleVIN?: string | null;
+    vehicleMake?: string;
+    vehicleModel?: string;
+  };
+}
+
+type LedgerSourceFilter = '' | 'BANK_IMPORT' | 'MANUAL';
+
+interface LedgerSummary {
+  totalDebit: number;
+  totalCredit: number;
+  totalShipmentPurchaseAmount: number;
+  totalShipmentExpenses: number;
+  currentBalance: number;
+  transactionInfoBreakdown?: Partial<Record<TransactionInfoType, {
+    totalDebit: number;
+    totalCredit: number;
+    balance: number;
+  }>>;
+}
+
+type TransactionInfoType = 'CAR_PAYMENT' | 'SHIPPING_PAYMENT' | 'STORAGE_PAYMENT';
+
+const transactionInfoTypeLabels: Record<TransactionInfoType, string> = {
+  CAR_PAYMENT: 'Car Payment',
+  SHIPPING_PAYMENT: 'Shipping Payment',
+  STORAGE_PAYMENT: 'Storage Payment',
+};
+
+export default function LedgerPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const isAdmin = session?.user?.role === 'admin';
+  const canManageLedger = hasPermission(session?.user?.role, 'finance:manage');
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [ledgerScope, setLedgerScope] = useState<'own' | 'single' | 'all'>('single');
+  const [summary, setSummary] = useState<LedgerSummary>({
+    totalDebit: 0,
+    totalCredit: 0,
+    totalShipmentPurchaseAmount: 0,
+    totalShipmentExpenses: 0,
+    currentBalance: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filters, setFilters] = useState({
+    search: '',
+    type: '',
+    source: '' as LedgerSourceFilter,
+    transactionInfoType: '',
+    startDate: '',
+    endDate: '',
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
+  const [editForm, setEditForm] = useState({ description: '', notes: '' });
+  const [formData, setFormData] = useState({
+    description: '',
+    type: 'DEBIT' as 'DEBIT' | 'CREDIT',
+    transactionInfoType: 'SHIPPING_PAYMENT' as TransactionInfoType,
+    amount: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session) {
+      router.replace('/auth/signin');
+      return;
+    }
+    fetchLedgerEntries();
+  }, [session, status, page, filters, router]);
+
+  const fetchLedgerEntries = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        ...(session?.user?.id && { userId: session.user.id }),
+        page: page.toString(),
+        limit: '20',
+        ...(filters.search && { search: filters.search }),
+        ...(filters.type && { type: filters.type }),
+        ...(filters.source && { source: filters.source }),
+        ...(filters.transactionInfoType && { transactionInfoType: filters.transactionInfoType }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+      });
+
+      const response = await fetch(`/api/ledger?recalc=true&${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch ledger entries');
+      }
+
+      const data = await response.json();
+      setEntries(data.entries);
+      setLedgerScope(data.scope === 'all' ? 'all' : data.scope === 'own' ? 'own' : 'single');
+      setSummary(data.summary);
+      setTotalPages(data.pagination.totalPages);
+    } catch (error) {
+      console.error('Error fetching ledger:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'pdf' | 'excel') => {
+    try {
+      const params = new URLSearchParams({
+        ...(session?.user?.id && { userId: session.user.id }),
+        ...(filters.search && { search: filters.search }),
+        ...(filters.type && { type: filters.type }),
+        ...(filters.source && { source: filters.source }),
+        ...(filters.transactionInfoType && { transactionInfoType: filters.transactionInfoType }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+      });
+
+      let endpoint = '/api/ledger/export';
+      if (format === 'pdf') {
+        endpoint = '/api/ledger/export-pdf';
+      } else if (format === 'excel') {
+        endpoint = '/api/ledger/export-excel';
+      }
+
+      const response = await fetch(`${endpoint}?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to export ledger');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      if (format === 'pdf') {
+        a.download = `ledger-${Date.now()}.html`;
+      } else if (format === 'excel') {
+        a.download = `ledger-${Date.now()}.csv`;
+      } else {
+        a.download = `ledger-${Date.now()}.csv`;
+      }
+      
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      if (format === 'pdf') {
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error exporting ledger:', error);
+      toast.error('Failed to export ledger');
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDeleteEntry = async (entryId: string) => {
+    if (!window.confirm('Delete this transaction? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/ledger/${entryId}`, { method: 'DELETE' });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete transaction');
+      }
+
+      toast.success('Transaction deleted successfully');
+      await fetchLedgerEntries();
+    } catch (error) {
+      toast.error('Unable to delete transaction', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    }
+  };
+
+  const openEditEntry = (entry: LedgerEntry) => {
+    setEditEntry(entry);
+    setEditForm({
+      description: entry.description,
+      notes: entry.notes || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEntry) return;
+
+    try {
+      const response = await fetch(`/api/ledger/${editEntry.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editForm.description,
+          notes: editForm.notes,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Transaction updated successfully');
+        setShowEditModal(false);
+        setEditEntry(null);
+        setEditForm({ description: '', notes: '' });
+        await fetchLedgerEntries();
+      } else {
+        toast.error(data.error || 'Failed to update transaction');
+      }
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      toast.error('Unable to update transaction', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    }
+  };
+
+  const handleAddEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user?.id) return;
+
+    try {
+      const amount = parseFloat(formData.amount);
+      const response = await fetch('/api/ledger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          description: formData.description,
+          type: formData.type,
+          transactionInfoType: formData.transactionInfoType,
+          amount,
+          notes: formData.notes,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Transaction added successfully');
+        setShowAddModal(false);
+        setFormData({ description: '', type: 'DEBIT', transactionInfoType: 'SHIPPING_PAYMENT', amount: '', notes: '' });
+        fetchLedgerEntries();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to add transaction');
+      }
+    } catch (error) {
+      console.error('Error adding entry:', error);
+      toast.error('An error occurred');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // Balance reads neutral; only a genuinely negative (overdrawn) balance
+  // reads red. (Round 3 F4 — money-direction display fix.)
+  const getBalanceColor = (balance: number) => {
+    if (balance < 0) return 'var(--error)';
+    if (balance === 0) return 'var(--text-secondary)';
+    return 'var(--text-primary)';
+  };
+
+  const isBankImportEntry = (entry: LedgerEntry) => entry.metadata?.importSource === 'BANK_OF_AMERICA_CSV';
+
+  const normalizeShipmentReference = (entry: LedgerEntry) => {
+    if (!entry.shipment?.id || !entry.shipment?.vehicleVIN) {
+      return entry.description;
+    }
+
+    const shipmentId = entry.shipment.id;
+    const vinLabel = `VIN ${entry.shipment.vehicleVIN}`;
+
+    return entry.description
+      .replace(new RegExp(`\\(Shipment\\s+${shipmentId}\\)`, 'gi'), `(${vinLabel})`)
+      .replace(new RegExp(`Shipment\\s+${shipmentId}`, 'gi'), vinLabel)
+      .replace(new RegExp(`shipment\\s+${shipmentId}`, 'g'), vinLabel);
+  };
+
+  const columns = useMemo<Column<LedgerEntry>[]>(() => [
+    ...(ledgerScope === 'all' && canManageLedger
+      ? [
+          {
+            key: 'userEmail' as const,
+            header: 'Customer',
+            width: '18%',
+            render: (_: unknown, row: LedgerEntry) => (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                {row.user?.name || row.user?.email || '—'}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'transactionDate',
+      header: 'Date',
+      sortable: true,
+      width: '15%',
+      className: 'whitespace-nowrap',
+      render: (_, row) => (
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          {formatDate(row.transactionDate)}
+        </span>
+      )
+    },
+    {
+      key: 'description',
+      header: 'Description',
+      sortable: true,
+      width: '40%',
+      render: (_, row) => {
+        const isPending = row.metadata?.pendingInvoice === true;
+        const isInvoicePaid = !isPending && (typeof row.metadata?.invoiceId === 'string' || typeof row.metadata?.invoiceNumber === 'string');
+        const isBankImport = isBankImportEntry(row);
+
+        return (
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500}}>
+                {normalizeShipmentReference(row)}
+              </p>
+              {isBankImport && (
+                <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#2563eb', border: '1px solid rgba(59, 130, 246, 0.22)', textTransform: 'uppercase'}}>
+                  Bank Import
+                </JXBox>
+              )}
+              {isPending && (
+                <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(234, 179, 8, 0.15)', color: '#ca8a04', border: '1px solid rgba(234, 179, 8, 0.3)', textTransform: 'uppercase'}}>
+                  Pending Invoice
+                </JXBox>
+              )}
+              {isInvoicePaid && (
+                <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', border: '1px solid rgba(34, 197, 94, 0.3)', textTransform: 'uppercase'}}>
+                  Invoice Paid
+                </JXBox>
+              )}
+            </JXBox>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 600}}>
+              {row.transactionInfoType ? transactionInfoTypeLabels[row.transactionInfoType] : 'Not specified'}
+            </p>
+            {row.notes && (
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
+                {row.notes}
+              </p>
+            )}
+            {row.shipment && (
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
+                {row.shipment.vehicleVIN
+                  ? `VIN: ${row.shipment.vehicleVIN}`
+                  : `${row.shipment.vehicleMake || ''} ${row.shipment.vehicleModel || ''}`.trim() || row.shipment.id}
+              </p>
+            )}
+          </JXBox>
+        );
+      }
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      sortable: true,
+      align: 'center' as const,
+      width: '15%',
+      render: (_, row) => (
+        <JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, backgroundColor: row.type === 'DEBIT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e'}}>
+          {row.type === 'DEBIT' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+          {row.type}
+        </JXBox>
+      )
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      sortable: true,
+      align: 'right' as const,
+      width: '15%',
+      render: (_, row) => (
+        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e' }}>
+          {/* Money direction (Round 3 F4): DEBIT is money out (−, red),
+              CREDIT is money in (+, green). */}
+          {row.type === 'DEBIT' ? '−' : '+'}{formatCurrency(row.amount)}
+        </span>
+      )
+    },
+    {
+      key: 'balance',
+      header: 'Balance',
+      sortable: true,
+      align: 'right' as const,
+      width: '15%',
+      render: (_, row) => (
+        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: getBalanceColor(row.balance) }}>
+          {formatCurrency(row.balance)}
+        </span>
+      )
+    },
+    ...(canManageLedger ? [{
+      key: 'actions' as const,
+      header: 'Actions',
+      align: 'center' as const,
+      width: '12%',
+      render: (_: unknown, row: LedgerEntry) => (
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Edit transaction">
+            <IconButton icon={<Edit2 size={16} />} ariaLabel={`Edit ${row.description}`} variant="ghost" size="sm" onClick={() => openEditEntry(row)} style={{color: 'var(--accent-gold)'}} />
+          </Tooltip>
+          <Tooltip title="Delete transaction">
+            <IconButton icon={<Trash2 size={16} />} ariaLabel={`Delete ${row.description}`} variant="ghost" size="sm" color="error" onClick={() => void handleDeleteEntry(row.id)} />
+          </Tooltip>
+        </JXBox>
+      ),
+    }] : [])
+  ], [canManageLedger, ledgerScope]);
+
+  if (status === 'loading' || loading) {
+    return (
+      <ProtectedRoute>
+        <DashboardSurface>
+          <PageHeader
+            title="General Ledger"
+            description="Detailed double-entry records and transaction reconciliation"
+            showBreadcrumbs
+          />
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px'}}>
+            <TableSkeleton rows={5} />
+          </JXBox>
+        </DashboardSurface>
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <DashboardSurface>
+        <PageHeader
+          title="General Ledger"
+          description="Detailed double-entry records and transaction reconciliation"
+          showBreadcrumbs
+          actions={
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+              {isAdmin && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowAddModal(true)}
+                  icon={<Plus size={16} />}
+                >
+                  Add Transaction
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                icon={<Printer size={16} />}
+              >
+                Print
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport('pdf')}
+                icon={<FileText size={16} />}
+              >
+                PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport('excel')}
+                icon={<FileSpreadsheet size={16} />}
+              >
+                Excel
+              </Button>
+            </JXBox>
+          }
+        />
+
+        {/* Stats Cards */}
+        <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+          <StatsCard
+            icon={<TrendingUp size={22} />}
+            title="Total Credits"
+            value={formatCurrency(summary.totalCredit)}
+            subtitle="Amount paid into accounts"
+            variant="success"
+          />
+          <StatsCard
+            icon={<TrendingDown size={22} />}
+            title="Total Debits"
+            value={formatCurrency(summary.totalDebit)}
+            subtitle="Total amount charged"
+            variant="error"
+          />
+          <StatsCard
+            icon={<Truck size={22} />}
+            title="Shipment Purchases"
+            value={formatCurrency(summary.totalShipmentPurchaseAmount)}
+            subtitle="Total car purchase amount in ledger"
+            variant="default"
+          />
+          <StatsCard
+            icon={<DollarSign size={22} />}
+            title="Shipment Expenses"
+            value={formatCurrency(summary.totalShipmentExpenses)}
+            subtitle="All shipment expense debits"
+            variant="info"
+          />
+        </DashboardGrid>
+
+        {/* Filters Panel */}
+        <DashboardPanel
+          title="Filters & Search"
+          description="Filter ledger transactions by type, category, date range, or origin"
+          noBodyPadding={!showFilters}
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              icon={<Filter size={15} />}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+          }
+        >
+          {showFilters && (
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <div className="min-w-0 flex-1"><BareInput placeholder="Search transactions..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} leftIcon={<Search size={18} style={{ marginRight: 8, color: 'var(--text-secondary)' }} />} size="small" /></div>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-4">
+                <div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "", label: 'All Types' }, { value: "DEBIT", label: 'Debit' }, { value: "CREDIT", label: 'Credit' }]} value={filters.type} size="small" onChange={(val) => setFilters({ ...filters, type: val as string })} /></div>
+                <div className="min-w-0 flex-1"><Select label="Source" options={[{ value: "", label: 'All Sources' }, { value: "BANK_IMPORT", label: 'Bank Imports' }, { value: "MANUAL", label: 'Manual Entries' }]} value={filters.source} size="small" onChange={(val) => setFilters({ ...filters, source: val as LedgerSourceFilter })} /></div>
+                <div className="min-w-0 flex-1"><Select label="Transaction Info" options={[{ value: "", label: 'All Transaction Types' }, ...Object.entries(transactionInfoTypeLabels).map(([value, label]) => ({ value, label }))]} value={filters.transactionInfoType} size="small" onChange={(val) => setFilters({ ...filters, transactionInfoType: val as string })} /></div>
+                <div className="min-w-0 flex-1"><FormField label="Start Date" type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} InputLabelProps={{ shrink: true }} size="small" /></div>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-4">
+                <div className="min-w-0 flex-1"><FormField label="End Date" type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} InputLabelProps={{ shrink: true }} size="small" /></div>
+              </JXBox>
+            </JXBox>
+          )}
+        </DashboardPanel>
+
+        {/* Transactions Table */}
+        <DashboardPanel
+          title="Transaction History"
+          description={`Showing ${entries.length} transaction${entries.length !== 1 ? 's' : ''}${filters.source === 'BANK_IMPORT' ? ' from bank imports' : filters.source === 'MANUAL' ? ' from manual entries' : ''}`}
+          fullHeight
+        >
+          <DataTable 
+            data={entries}
+            columns={columns}
+            keyField="id"
+          />
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)'}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
+                Page {page} of {totalPages}
+              </p>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  icon={<ChevronLeft size={16} />}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  icon={<ChevronRight size={16} />}
+                >
+                  Next
+                </Button>
+              </JXBox>
+            </JXBox>
+          )}
+        </DashboardPanel>
+
+        {/* Add Transaction Modal */}
+        <Modal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title="Add Transaction"
+          description="Post a manual debit or credit entry to the customer ledger"
+          size="md"
+        >
+          <form onSubmit={handleAddEntry}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '8px'}}>
+              {(() => {
+                const enteredAmount = parseFloat(formData.amount) || 0;
+                const projectedBalance = formData.type === 'DEBIT'
+                  ? summary.currentBalance + enteredAmount
+                  : summary.currentBalance - enteredAmount;
+                const currentBalanceLabel = summary.currentBalance > 0
+                  ? `You owe ${formatCurrency(summary.currentBalance)}`
+                  : summary.currentBalance < 0
+                    ? `You have ${formatCurrency(Math.abs(summary.currentBalance))} credit`
+                    : 'Account is settled';
+                const projectedBalanceLabel = projectedBalance > 0
+                  ? `you will owe ${formatCurrency(projectedBalance)}`
+                  : projectedBalance < 0
+                    ? `you will have ${formatCurrency(Math.abs(projectedBalance))} credit`
+                    : 'account will be settled';
+                return (
+                  <Alert severity={formData.type === 'DEBIT' ? 'info' : 'success'} variant="subtle">
+                    Current Balance: <strong>{currentBalanceLabel}</strong>. {enteredAmount > 0 ? `After this transaction, ${projectedBalanceLabel}.` : 'Enter an amount to preview the new balance.'}
+                  </Alert>
+                );
+              })()}
+
+              <div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "DEBIT", label: 'Debit / Charge' }, { value: "CREDIT", label: 'Credit / Payment' }]} value={formData.type} size="small" required onChange={(val) => setFormData({ ...formData, type: val as 'DEBIT' | 'CREDIT' })} /></div>
+
+              <div className="min-w-0 flex-1"><Select label="Category" options={Object.entries(transactionInfoTypeLabels).map(([value, label]) => ({ value, label }))} value={formData.transactionInfoType} size="small" required onChange={(val) => setFormData({ ...formData, transactionInfoType: val as TransactionInfoType })} /></div>
+
+              <div className="min-w-0 flex-1"><FormField label="Description *" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="e.g. Shipping charge, Payment" required size="small" /></div>
+
+              <div className="min-w-0 flex-1"><FormField label="Amount * (USD)" type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" inputProps={{ step: '0.01', min: '0.01' }} required size="small" /></div>
+
+              <div className="min-w-0 flex-1"><FormField label="Notes (Optional)" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Add any additional notes" multiline rows={3} size="small" /></div>
+
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px'}}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" icon={<Check size={16} />}>
+                  Add Transaction
+                </Button>
+              </JXBox>
+            </JXBox>
+          </form>
+        </Modal>
+
+        {/* Edit Transaction Modal */}
+        <Modal
+          open={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Edit Transaction"
+          description="Update transaction description and audit notes"
+          size="md"
+        >
+          <form onSubmit={handleEditEntry}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '8px'}}>
+              <Alert severity="warning" variant="subtle">
+                Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
+              </Alert>
+
+              <div className="min-w-0 flex-1"><FormField label="Type (Read-only)" value={editEntry?.type || ''} disabled size="small" /></div>
+
+              <div className="min-w-0 flex-1"><FormField label="Amount (Read-only)" value={editEntry ? formatCurrency(editEntry.amount) : ''} disabled size="small" /></div>
+
+              <div className="min-w-0 flex-1"><FormField label="Description *" value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} required size="small" /></div>
+
+              <div className="min-w-0 flex-1"><FormField label="Notes" value={editForm.notes} onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))} multiline rows={3} size="small" /></div>
+
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px'}}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" icon={<Check size={16} />}>
+                  Update Transaction
+                </Button>
+              </JXBox>
+            </JXBox>
+          </form>
+        </Modal>
+      </DashboardSurface>
+    </ProtectedRoute>
+  );
+}

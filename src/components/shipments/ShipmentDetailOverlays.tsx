@@ -1,0 +1,201 @@
+'use client';
+
+import { Eye, EyeOff } from 'lucide-react';
+import { Button, Modal, Select } from '@/components/design-system';
+import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
+import PhotoLightbox from '@/components/shipments/PhotoLightbox';
+import type {
+  AvailableDispatchOption,
+  AvailableTransitOption,
+  ExpenseActionContext,
+  ShipmentPhotoLightboxState,
+} from '@/components/shipments/shipment-detail-types';
+
+type ShipmentDetailOverlaysProps = {
+  lightbox: ShipmentPhotoLightboxState;
+  canDeleteArrivalLightbox: boolean;
+  downloading: boolean;
+  onCloseLightbox: () => void;
+  onNavigateLightbox: (index: number) => void;
+  onDeleteFromLightbox?: (index: number) => void | Promise<void>;
+  onDownloadPhoto: (url: string, index: number) => void | Promise<void>;
+  onDownloadAllPhotos: (urls: string[], label: string) => void | Promise<void>;
+  canManageWorkflow: boolean;
+  openAssignDispatch: boolean;
+  onCloseAssignDispatch: () => void;
+  loadingDispatches: boolean;
+  assigningDispatch: boolean;
+  availableDispatches: AvailableDispatchOption[];
+  dispatchIdToAssign: string;
+  onDispatchIdChange: (value: string) => void;
+  onAssignDispatch: () => void | Promise<void>;
+  openAssignTransit: boolean;
+  onCloseAssignTransit: () => void;
+  loadingTransits: boolean;
+  assigningTransit: boolean;
+  availableTransits: AvailableTransitOption[];
+  transitIdToAssign: string;
+  onTransitIdChange: (value: string) => void;
+  releaseTokenToAssign: string;
+  onReleaseTokenChange: (value: string) => void;
+  showReleaseToken: boolean;
+  onToggleReleaseToken: () => void;
+  onAssignTransit: () => void | Promise<void>;
+  shipmentId: string | null;
+  expenseAction: ExpenseActionContext | null;
+  onCloseExpenseAction: () => void;
+  onExpenseSuccess: () => void;
+};
+
+export default function ShipmentDetailOverlays({
+  lightbox,
+  canDeleteArrivalLightbox,
+  downloading,
+  onCloseLightbox,
+  onNavigateLightbox,
+  onDeleteFromLightbox,
+  onDownloadPhoto,
+  onDownloadAllPhotos,
+  canManageWorkflow,
+  openAssignDispatch,
+  onCloseAssignDispatch,
+  loadingDispatches,
+  assigningDispatch,
+  availableDispatches,
+  dispatchIdToAssign,
+  onDispatchIdChange,
+  onAssignDispatch,
+  openAssignTransit,
+  onCloseAssignTransit,
+  loadingTransits,
+  assigningTransit,
+  availableTransits,
+  transitIdToAssign,
+  onTransitIdChange,
+  releaseTokenToAssign,
+  onReleaseTokenChange,
+  showReleaseToken,
+  onToggleReleaseToken,
+  onAssignTransit,
+  shipmentId,
+  expenseAction,
+  onCloseExpenseAction,
+  onExpenseSuccess,
+}: ShipmentDetailOverlaysProps) {
+  return (
+    <>
+      {lightbox && (
+        <PhotoLightbox
+          images={lightbox.images}
+          index={lightbox.index}
+          title={lightbox.title}
+          canDelete={canDeleteArrivalLightbox}
+          onClose={onCloseLightbox}
+          onNavigate={onNavigateLightbox}
+          onDelete={onDeleteFromLightbox ? (index) => Promise.resolve(onDeleteFromLightbox(index)) : undefined}
+          onDownload={(url, index) => Promise.resolve(onDownloadPhoto(url, index))}
+          onDownloadAll={(urls) => Promise.resolve(onDownloadAllPhotos(urls, lightbox.title))}
+          downloading={downloading}
+        />
+      )}
+
+      {canManageWorkflow && (
+        <Modal
+          open={openAssignDispatch}
+          onClose={() => !assigningDispatch && onCloseAssignDispatch()}
+          size="sm"
+          title="Assign Shipment to Dispatch"
+          description="Choose a pending dispatch route for this shipment."
+          showCloseButton={!assigningDispatch}
+          disableBackdropClick={assigningDispatch}
+          actions={
+            <>
+              <Button variant="outline" onClick={onCloseAssignDispatch} disabled={assigningDispatch}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => void onAssignDispatch()}
+                disabled={assigningDispatch || loadingDispatches || !dispatchIdToAssign}
+              >
+                {assigningDispatch ? 'Assigning...' : 'Assign'}
+              </Button>
+            </>
+          }
+        >
+          <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <Select label="Dispatch" value={dispatchIdToAssign} onChange={(val) => onDispatchIdChange(String(val))} helperText={loadingDispatches ? 'Loading pending dispatches...' : 'Select a dispatch route for this shipment'} disabled={loadingDispatches || assigningDispatch} size="small" options={availableDispatches.map((dispatch) => ({ value: dispatch.id, label: `${dispatch.referenceNumber} - ${dispatch.company.name} (${dispatch.origin} → ${dispatch.destination})` }))} />
+            {!loadingDispatches && availableDispatches.length === 0 && (
+              <p className="mt-3 text-sm text-[var(--text-secondary)]">No pending dispatches are available.</p>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {canManageWorkflow && (
+        <Modal
+          open={openAssignTransit}
+          onClose={() => !assigningTransit && onCloseAssignTransit()}
+          size="sm"
+          title="Assign Shipment to Transit"
+          description="Choose an open transit for this shipment. The release token is pre-filled for verification."
+          showCloseButton={!assigningTransit}
+          disableBackdropClick={assigningTransit}
+          actions={
+            <>
+              <Button variant="outline" onClick={onCloseAssignTransit} disabled={assigningTransit}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => void onAssignTransit()}
+                disabled={assigningTransit || loadingTransits || !transitIdToAssign}
+              >
+                {assigningTransit ? 'Assigning...' : 'Assign'}
+              </Button>
+            </>
+          }
+        >
+          <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <Select label="Transit" value={transitIdToAssign} onChange={(val) => onTransitIdChange(String(val))} helperText={loadingTransits ? 'Loading open transits...' : 'Select the transit this shipment will travel on'} disabled={loadingTransits || assigningTransit} size="small" options={availableTransits.map((transit) => ({ value: transit.id, label: `${transit.referenceNumber} ${transit.currentCompany ? ` - ${transit.currentCompany.name}` : ''} (${transit.origin} → ${transit.destination})` }))} />
+            {!loadingTransits && availableTransits.length === 0 && (
+              <p className="mt-3 text-sm text-[var(--text-secondary)]">No open transits are available. Create one from the Transits page first.</p>
+            )}
+            <div>
+              <p className="mb-1.5 text-[0.875rem] font-medium text-[var(--text-primary)]">Release Token</p>
+              <div className="relative">
+                <input
+                  type={showReleaseToken ? 'text' : 'password'}
+                  value={releaseTokenToAssign}
+                  onChange={(event) => onReleaseTokenChange(event.target.value)}
+                  className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] pr-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]"
+                />
+                <button
+                  type="button"
+                  onClick={onToggleReleaseToken}
+                  aria-label={showReleaseToken ? 'Hide release token' : 'Show release token'}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  {showReleaseToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="mt-1.5 text-[0.8125rem] text-[var(--text-secondary)]">Auto-filled from this shipment — the token is verified before assigning</p>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {shipmentId && (
+        <AddShipmentExpenseModal
+          open={Boolean(expenseAction)}
+          onClose={onCloseExpenseAction}
+          shipmentId={shipmentId}
+          modalTitle={expenseAction?.modalTitle}
+          contextType={expenseAction?.contextType}
+          contextId={expenseAction?.contextId}
+          onSuccess={onExpenseSuccess}
+        />
+      )}
+    </>
+  );
+}

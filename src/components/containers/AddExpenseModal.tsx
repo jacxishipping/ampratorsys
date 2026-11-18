@@ -1,0 +1,168 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { DollarSign } from 'lucide-react';
+import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
+
+export interface EditableContainerExpense {
+	id: string;
+	type: string;
+	amount: number;
+	currency: string;
+	date: string;
+	vendor: string | null;
+	invoiceNumber?: string | null;
+	notes?: string | null;
+}
+
+interface AddExpenseModalProps {
+	open: boolean;
+	onClose: () => void;
+	containerId: string;
+	onSuccess: () => void;
+	/** When provided, the modal edits the existing expense instead of creating one. */
+	initialExpense?: EditableContainerExpense | null;
+}
+
+const expenseTypes = [
+	{ value: 'SHIPPING_FEE', label: 'Shipping Fee' },
+	{ value: 'PORT_CHARGES', label: 'Port Charges' },
+	{ value: 'CUSTOMS_DUTY', label: 'Customs Duty' },
+	{ value: 'STORAGE_FEE', label: 'Storage Fee' },
+	{ value: 'HANDLING_FEE', label: 'Handling Fee' },
+	{ value: 'INSURANCE', label: 'Insurance' },
+	{ value: 'DOCUMENTATION', label: 'Documentation' },
+	{ value: 'INLAND_TRANSPORT', label: 'Inland Transport' },
+	{ value: 'INSPECTION', label: 'Inspection' },
+	{ value: 'OTHER', label: 'Other' },
+];
+
+function createInitialForm(expense?: EditableContainerExpense | null) {
+	return {
+		type: expense?.type || 'SHIPPING_FEE',
+		amount: expense ? String(expense.amount) : '',
+		currency: expense?.currency || 'USD',
+		vendor: expense?.vendor || '',
+		invoiceNumber: expense?.invoiceNumber || '',
+		date: expense?.date ? String(expense.date).slice(0, 10) : new Date().toISOString().split('T')[0],
+		notes: expense?.notes || '',
+	};
+}
+
+export default function AddExpenseModal({
+	open,
+	onClose,
+	containerId,
+	onSuccess,
+	initialExpense,
+}: AddExpenseModalProps) {
+	const [loading, setLoading] = useState(false);
+	const [formData, setFormData] = useState(createInitialForm(initialExpense));
+	const isEditing = Boolean(initialExpense?.id);
+
+	useEffect(() => {
+		if (open) {
+			setFormData(createInitialForm(initialExpense));
+		}
+	}, [initialExpense, open]);
+
+	const handleChange = useCallback((field: string, value: string) => {
+		setFormData((prev) => ({ ...prev, [field]: value }));
+	}, []);
+
+	const handleClose = useCallback(() => {
+		if (!loading) {
+			setFormData(createInitialForm(null));
+			onClose();
+		}
+	}, [loading, onClose]);
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		// Validation
+		if (!formData.amount || parseFloat(formData.amount) <= 0) {
+			toast.error('Please enter a valid amount');
+			return;
+		}
+
+		setLoading(true);
+
+		try {
+			const response = await fetch(`/api/containers/${containerId}/expenses`, {
+				method: isEditing ? 'PATCH' : 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					...(initialExpense?.id ? { expenseId: initialExpense.id } : {}),
+					type: formData.type,
+					amount: parseFloat(formData.amount),
+					currency: formData.currency,
+					date: formData.date,
+					vendor: formData.vendor || null,
+					invoiceNumber: formData.invoiceNumber || null,
+					notes: formData.notes || null,
+				}),
+			});
+
+			if (response.ok) {
+				toast.success(isEditing ? 'Expense updated successfully' : 'Expense added successfully');
+				onSuccess();
+				handleClose();
+			} else {
+				const data = await response.json();
+				toast.error(data.error || `Failed to ${isEditing ? 'update' : 'add'} expense`);
+			}
+		} catch (error) {
+			console.error('Error saving expense:', error);
+			toast.error('An error occurred');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const formId = 'container-expense-form';
+
+	return (
+		<Modal
+			open={open}
+			onClose={handleClose}
+			size="sm"
+			title={
+				<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+					<DollarSign style={{ fontSize: 24, color: 'var(--accent-gold)' }} />
+					<span>{isEditing ? 'Edit Container Expense' : 'Add Container Expense'}</span>
+				</div>
+			}
+			description="Capture a container expense with vendor and invoice details so the ledger stays reconciled."
+			showCloseButton={!loading}
+			disableBackdropClick={loading}
+			actions={
+				<>
+					<Button variant="outline" onClick={handleClose} disabled={loading}>
+						Cancel
+					</Button>
+					<Button type="submit" form={formId} variant="primary" disabled={loading}>
+						{loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Expense'}
+					</Button>
+				</>
+			}
+		>
+			<form id={formId} onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+					<Select label="Expense Type" value={formData.type} onChange={(val) => handleChange('type', String(val))} options={[...(!expenseTypes.some((type) => type.value === formData.type) ? [{ value: formData.type, label: formData.type.replace(/_/g, ' ') }] : []), ...expenseTypes.map((type) => ({ value: type.value, label: type.label }))]} />
+
+					<div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+						<FormField id="container-expense-amount" name="amount" label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
+						<FormField id="container-expense-currency" name="currency" label="Currency" value={formData.currency} onChange={(e) => handleChange('currency', e.target.value)} disabled size="small" />
+					</div>
+
+					<FormField id="container-expense-vendor" name="vendor" label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} placeholder="e.g., Maersk Line, US Customs" size="small" />
+
+					<FormField id="container-expense-invoice" name="invoiceNumber" label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} placeholder="Vendor's invoice reference" size="small" />
+
+					<FormField id="container-expense-date" name="date" label="Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
+
+					<FormField id="container-expense-notes" name="notes" label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} placeholder="Additional details..." size="small" />
+			</form>
+		</Modal>
+	);
+}

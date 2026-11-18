@@ -1,0 +1,1147 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck, RefreshCw, Search } from 'lucide-react';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
+import { Button, CompactSkeleton, CopyButton, DashboardPageSkeleton, EmptyState, FormField, IconButton, PageHeader, Select, SkeletonCard, StatsCard, StatusBadge, StatusFilterPills, Tooltip, toast } from '@/components/design-system';
+import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
+import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
+import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
+import { OceanRouteMap } from '@/components/dashboard/OceanRouteMap';
+import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
+import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
+import { DataTable, Column } from '@/components/ui/DataTable';
+import { exportToCSVWithHeaders } from '@/lib/export';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
+import { getContainerDemurrageInfo } from '@/lib/container-demurrage';
+import { TrackingSourceBadge } from '@/components/tracking/TrackingSourceBadge';
+
+function AnchoredMenu({
+  anchorEl,
+  onClose,
+  children,
+}: {
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (!anchorEl) return;
+    const r = anchorEl.getBoundingClientRect();
+    const width = 200;
+    const left = Math.max(8, Math.min(window.innerWidth - width - 8, r.right - width));
+    const estHeight = 380;
+    const top =
+      r.bottom + 4 + estHeight > window.innerHeight && r.top - estHeight > 8
+        ? Math.max(8, r.top - estHeight - 4)
+        : r.bottom + 4;
+    setPos({ top, left });
+  }, [anchorEl]);
+  useEffect(() => {
+    if (!anchorEl) return;
+    const handleDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleDown);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [anchorEl, onClose]);
+  if (!anchorEl) return null;
+  return (
+    <div
+      ref={panelRef}
+      role="menu"
+      className="fixed z-[1050] min-w-[200px] rounded-2xl border border-[var(--border)] bg-[var(--panel)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
+      style={{ top: pos.top, left: pos.left }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function AnchoredMenuItem( {
+  onClick,
+  children,
+  danger = false,
+  disabled = false,
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "flex w-full items-center px-4 py-2.5 text-left text-[0.875rem] transition-colors disabled:opacity-50",
+        danger
+          ? "text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.1)]"
+          : "text-[var(--text-primary)] hover:bg-[rgba(var(--border-rgb),0.4)]",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+interface Container {
+  id: string;
+  containerNumber: string;
+  trackingNumber: string | null;
+  vesselName: string | null;
+  voyageNumber?: string | null;
+  shippingLine: string | null;
+  loadingPort?: string | null;
+  destinationPort: string | null;
+  departureDate?: string | null;
+  estimatedArrival: string | null;
+  actualArrival?: string | null;
+  status: string;
+  progress: number;
+  currentCount: number;
+  maxCapacity: number;
+  createdAt: string;
+  trackingEvents?: Array<{
+    id: string;
+    status: string;
+    eventDate: string;
+    source?: string | null;
+  }>;
+  _count: {
+    shipments: number;
+    expenses: number;
+    invoices: number;
+    documents: number;
+  };
+}
+
+const statusLabels: Record<string, string> = {
+  CREATED: 'Created',
+  WAITING_FOR_LOADING: 'Waiting',
+  LOADED: 'Loaded',
+  IN_TRANSIT: 'In Transit',
+  ARRIVED_PORT: 'Arrived',
+  CUSTOMS_CLEARANCE: 'Customs',
+  RELEASED: 'Released',
+  CLOSED: 'Closed',
+};
+
+export default function ContainersPage() {
+  const [containers, setContainers] = useState<Container[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showBulkTable, setShowBulkTable] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
+  const [quickPeekContainerId, setQuickPeekContainerId] = useState<string | null>(null);
+  const [qrModalData, setQrModalData] = useState<QRCodeData | null>(null);
+  const [plannerContainer, setPlannerContainer] = useState<Container | null>(null);
+  const [showOceanTracker, setShowOceanTracker] = useState(false);
+  const [activeOceanContainerId, setActiveOceanContainerId] = useState<string | null>(null);
+  const [refreshingTracking, setRefreshingTracking] = useState(false);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'admin';
+
+  useEffect(() => {
+    try {
+      const savedMode = window.localStorage.getItem('jacxi.containers_view_mode');
+      if (savedMode === 'bulk') {
+        setShowBulkTable(true);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const handleToggleViewMode = () => {
+    setShowBulkTable((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('jacxi.containers_view_mode', next ? 'bulk' : 'cards');
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  const handleClearFilters = () => {
+    setStatusFilter('all');
+    setSearchQuery('');
+  };
+
+  const handleOpenQR = (container: Container, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setQrModalData({
+      type: 'CONTAINER',
+      id: container.id,
+      title: `Container ${container.containerNumber}`,
+      code: container.containerNumber,
+      trackingUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/tracking?container=${container.containerNumber}`,
+      metadata: {
+        vesselName: container.vesselName || undefined,
+        destination: container.destinationPort || undefined,
+        status: container.status,
+      },
+    });
+  };
+
+  useEffect(() => {
+    fetchContainers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, searchQuery]);
+
+  const fetchContainers = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ all: 'true' });
+
+      if (statusFilter !== 'all' && statusFilter !== 'demurrage_risk') {
+        params.append('status', statusFilter);
+      }
+
+      if (searchQuery) {
+        params.append('search', searchQuery);
+      }
+
+      const response = await fetch(`/api/containers?${params}`, { cache: 'no-store' });
+      const data = await response.json();
+
+      if (response.ok) {
+        setContainers(data.containers);
+      }
+    } catch (error) {
+      console.error('Error fetching containers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchContainers();
+  };
+
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (searchQuery) params.append('search', searchQuery);
+
+      const response = await fetch(`/api/containers/export-excel?${params}`);
+      
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `containers-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Export started successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export containers');
+    }
+  };
+
+  const handleRefreshAllTracking = async () => {
+    try {
+      setRefreshingTracking(true);
+      toast.info('Refreshing live tracking data for all containers via tracking APIs...');
+      const res = await fetch('/api/containers/sync-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to refresh tracking data');
+      }
+
+      toast.success(
+        data.message || `Successfully refreshed tracking (${data.synced} container(s) synced)!`
+      );
+      await fetchContainers();
+    } catch (err: any) {
+      console.error('Error refreshing tracking:', err);
+      toast.error(err.message || 'Error communicating with tracking APIs');
+    } finally {
+      setRefreshingTracking(false);
+    }
+  };
+
+  const confirmAction = useConfirmAction();
+
+  const handleBulkDelete = async (containerIds: string[]) => {
+    if (!isAdmin) return;
+
+    if (!(await confirmAction({
+      message: `Delete ${containerIds.length} container(s)? This cannot be undone.`,
+      confirmText: 'Delete containers',
+      severity: 'error',
+    }))) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/bulk/containers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', containerIds }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Bulk delete failed');
+      }
+
+      toast.success('Containers deleted', {
+        description: `${data.deletedCount || 0} container(s) removed`,
+      });
+
+      if (data.skipped?.length) {
+        toast.error('Some containers were not deleted', {
+          description: data.skipped.map((item: { containerNumber: string }) => item.containerNumber).join(', '),
+        });
+      }
+
+      fetchContainers();
+    } catch (error) {
+      console.error('Error deleting containers:', error);
+      toast.error('Failed to delete containers');
+    }
+  };
+
+  const handleBulkExport = (rows: Container[]) => {
+    try {
+      exportToCSVWithHeaders(
+        rows.map((row) => ({
+          containerNumber: row.containerNumber,
+          status: row.status,
+          trackingNumber: row.trackingNumber ?? '-',
+          vesselName: row.vesselName ?? '-',
+          destinationPort: row.destinationPort ?? '-',
+          estimatedArrival: row.estimatedArrival ? new Date(row.estimatedArrival).toLocaleDateString() : '-',
+          capacity: `${row.currentCount}/${row.maxCapacity}`,
+        })),
+        [
+          { key: 'containerNumber', label: 'Container' },
+          { key: 'status', label: 'Status' },
+          { key: 'trackingNumber', label: 'Tracking' },
+          { key: 'vesselName', label: 'Vessel' },
+          { key: 'destinationPort', label: 'Destination' },
+          { key: 'estimatedArrival', label: 'ETA' },
+          { key: 'capacity', label: 'Capacity' },
+        ],
+        'containers'
+      );
+      toast.success('Export ready');
+    } catch (error) {
+      console.error('Error exporting containers:', error);
+      toast.error('Failed to export containers');
+    }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, container: Container) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedContainer(container);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedContainer(null);
+  };
+
+  const handleViewContainer = () => {
+    if (selectedContainer) {
+      router.push(`/dashboard/containers/${selectedContainer.id}`);
+    }
+    handleMenuClose();
+  };
+
+  const handleDuplicateContainer = () => {
+    if (selectedContainer) {
+      router.push(`/dashboard/containers/${selectedContainer.id}?action=duplicate`);
+    }
+    handleMenuClose();
+  };
+
+  const handleDeleteContainer = async () => {
+    if (!selectedContainer) return;
+    
+    if (selectedContainer.currentCount > 0) {
+      toast.error('Cannot delete container', {
+        description: 'Remove all shipments first'
+      });
+      handleMenuClose();
+      return;
+    }
+
+    if (!(await confirmAction({
+      message: `Delete container ${selectedContainer.containerNumber}? This cannot be undone.`,
+      confirmText: 'Delete container',
+      severity: 'error',
+    }))) {
+      handleMenuClose();
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/containers/${selectedContainer.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Container deleted successfully');
+        fetchContainers();
+      } else {
+        const data = await response.json();
+        toast.error('Failed to delete container', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting container:', error);
+      toast.error('An error occurred');
+    }
+    
+    handleMenuClose();
+  };
+
+  const stats = {
+    total: containers.length,
+    inTransit: containers.filter(c => c.status === 'IN_TRANSIT').length,
+    arrived: containers.filter(c => c.status === 'ARRIVED_PORT' || c.status === 'RELEASED').length,
+    demurrageRisk: containers.filter(c => {
+      const info = getContainerDemurrageInfo(c);
+      return info.level === 'critical' || info.level === 'warning';
+    }).length,
+    avgCapacity: containers.length > 0 
+      ? Math.round((containers.reduce((sum, c) => sum + (c.currentCount / c.maxCapacity * 100), 0) / containers.length))
+      : 0,
+  };
+
+  const displayedContainers = statusFilter === 'demurrage_risk'
+    ? containers.filter((c) => ['critical', 'warning'].includes(getContainerDemurrageInfo(c).level))
+    : containers;
+
+  const containerStatusOptions = Object.entries(statusLabels).map(([value, label]) => ({
+    value,
+    label,
+  }));
+  const statusFilterOptions = [
+    { value: 'all', label: 'All Status' },
+    ...containerStatusOptions,
+  ];
+
+  const containerColumns: Column<Container>[] = [
+    {
+      key: 'containerNumber',
+      header: 'Container',
+      sortable: true,
+      render: (value) => (
+        <span className="inline-flex items-center gap-1.5 font-mono font-semibold">
+          <span>{String(value)}</span>
+          <CopyButton value={String(value)} label="Container #" />
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (value) => <StatusBadge status={String(value)} size="sm" />,
+    },
+    {
+      key: 'demurrage' as any,
+      header: 'Demurrage / Free Time',
+      render: (_value, row) => {
+        const demurrage = getContainerDemurrageInfo(row);
+        if (!demurrage.badgeLabel) {
+          return <span className="text-[var(--text-secondary)] text-xs">-</span>;
+        }
+        return (
+          <Tooltip title={demurrage.tooltipText}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] border font-medium ${demurrage.colorClass}`}>
+              {demurrage.level === 'critical' ? (
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+              ) : demurrage.level === 'warning' ? (
+                <Clock className="w-3 h-3 shrink-0" />
+              ) : (
+                <ShieldCheck className="w-3 h-3 shrink-0" />
+              )}
+              <span>{demurrage.badgeLabel}</span>
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      key: 'trackingNumber',
+      header: 'Tracking',
+      sortable: true,
+      render: (value) =>
+        value ? (
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs">
+            <span>{String(value)}</span>
+            <CopyButton value={String(value)} label="Tracking #" />
+          </span>
+        ) : (
+          <span className="text-[var(--text-secondary)]">-</span>
+        ),
+    },
+    {
+      key: 'trackingSource' as any,
+      header: 'Tracking API',
+      render: (_value, row) => {
+        const latestSource = row.trackingEvents?.[0]?.source;
+        return <TrackingSourceBadge source={latestSource} size="xs" />;
+      },
+    },
+    { key: 'vesselName', header: 'Vessel', sortable: true },
+    { key: 'destinationPort', header: 'Destination', sortable: true },
+    {
+      key: 'estimatedArrival',
+      header: 'ETA',
+      sortable: true,
+      render: (value) => (value ? new Date(String(value)).toLocaleDateString() : '-'),
+    },
+    {
+      key: 'currentCount',
+      header: 'Capacity',
+      render: (_value, row) => `${row.currentCount}/${row.maxCapacity}`,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (_value, row) => (
+        <div className="inline-flex items-center gap-1 whitespace-nowrap justify-end" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveOceanContainerId(row.id);
+              setShowOceanTracker(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              toast.info(`Tracking route for container ${row.containerNumber}`);
+            }}
+            title="Track route on Ocean Map"
+            aria-label="Track route on Ocean Map"
+            className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
+          >
+            <Compass className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlannerContainer(row)}
+            title="2D Visual Load Planner"
+            aria-label="2D Visual Load Planner"
+            className="p-1.5 rounded-lg text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickPeekContainerId(row.id)}
+            title="Quick peek container manifest"
+            aria-label="Quick peek container manifest"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
+          >
+            <PanelRightOpen className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/containers/${row.id}`)}
+            title="View container details"
+            aria-label="View container details"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const handleBulkStatusUpdate = async (containerIds: string[], status: string) => {
+    if (!isAdmin) return;
+
+    try {
+      const response = await fetch('/api/bulk/containers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateStatus', containerIds, data: { status } }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Bulk status update failed');
+      }
+
+      toast.success('Containers updated', {
+        description: `${data.count || 0} container(s) updated`,
+      });
+
+      fetchContainers();
+    } catch (error) {
+      console.error('Error updating containers:', error);
+      toast.error('Failed to update containers');
+    }
+  };
+
+  if (loading && containers.length === 0) {
+    return (
+      <ProtectedRoute>
+        <DashboardPageSkeleton />
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <DashboardSurface>
+        <PageHeader
+          showBreadcrumbs
+          title="Containers"
+          description="Manage shipping containers and tracking"
+          actions={
+            // Header actions wrap onto further rows whenever they do not fit,
+            // so every action stays fully visible and reachable without a
+            // half-cut button at the right edge (Round 3 part 2).
+            <JXBox padding="none" border={false} className="flex max-w-full flex-wrap" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', maxWidth: '100%'}}>
+              <Button
+                variant={showOceanTracker ? 'primary' : 'outline'}
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
+                onClick={() => setShowOceanTracker((prev) => !prev)}
+                icon={<Compass className="w-4 h-4" />}
+              >
+                {showOceanTracker ? 'Hide Ocean Map' : 'Live Ocean Map'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
+                onClick={() => {
+                  const target = containers.find(c => c.id === activeOceanContainerId) || containers[0] || null;
+                  if (target) setPlannerContainer(target);
+                }}
+                icon={<Layers className="w-4 h-4 text-[var(--accent-gold)]" />}
+              >
+                2D Load Planner
+              </Button>
+              {isAdmin && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 whitespace-nowrap"
+                  onClick={handleToggleViewMode}
+                >
+                  {showBulkTable ? 'Card view' : 'Bulk mode'}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
+                onClick={handleRefreshAllTracking}
+                disabled={refreshingTracking}
+                icon={<RefreshCw className={`w-4 h-4 ${refreshingTracking ? 'animate-spin text-[var(--accent-gold)]' : ''}`} />}
+              >
+                {refreshingTracking ? 'Syncing Tracking...' : 'Refresh Tracking'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
+                onClick={handleExport}
+                icon={<Download className="w-4 h-4" />}
+              >
+                Export CSV
+              </Button>
+              {isAdmin && (
+                <Button href="/dashboard/containers/new" variant="primary" size="sm" className="shrink-0 whitespace-nowrap" icon={<Package className="w-4 h-4" />}>
+                  New Container
+                </Button>
+              )}
+            </JXBox>
+          }
+        />
+
+        {/* Live Ocean Freight & Vessel Route Tracker */}
+        {showOceanTracker && containers.length > 0 && (() => {
+          const activeContainer = containers.find(c => c.id === activeOceanContainerId) || containers[0];
+          if (!activeContainer) return null;
+
+          const etaDays = activeContainer.estimatedArrival 
+            ? Math.max(1, Math.ceil((new Date(activeContainer.estimatedArrival).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+            : 9;
+
+          return (
+            <OceanRouteMap 
+              originPort={activeContainer.loadingPort || activeContainer.shippingLine || 'Port of Newark (USNWK)'}
+              destinationPort={activeContainer.destinationPort || 'Port of Jebel Ali (AEJEA)'}
+              vesselName={activeContainer.vesselName || 'MAERSK VOYAGER'}
+              voyageNumber={activeContainer.voyageNumber || activeContainer.trackingNumber || 'V-2409W'}
+              containerNumber={activeContainer.containerNumber}
+              currentProgressPct={activeContainer.status === 'ARRIVED_PORT' || activeContainer.status === 'CUSTOMS_CLEARANCE' || activeContainer.status === 'RELEASED' || activeContainer.status === 'CLOSED' ? 100 : (activeContainer.progress ?? 68)}
+              departureDate={activeContainer.departureDate}
+              estimatedArrival={activeContainer.estimatedArrival}
+              etaDays={etaDays}
+              status={statusLabels[activeContainer.status] || activeContainer.status || 'In Transit'}
+              containersList={containers.map((c) => ({
+                id: c.id,
+                containerNumber: c.containerNumber,
+                progress: c.status === 'ARRIVED_PORT' || c.status === 'CUSTOMS_CLEARANCE' || c.status === 'RELEASED' || c.status === 'CLOSED' ? 100 : c.progress,
+                vesselName: c.vesselName,
+                destinationPort: c.destinationPort,
+                status: c.status,
+              }))}
+              selectedContainerId={activeContainer.id}
+              onSelectContainer={(id) => setActiveOceanContainerId(id)}
+            />
+          );
+        })()}
+
+        {/* Stats */}
+        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          <StatsCard
+            icon={<Package style={{ fontSize: 18 }} />}
+            title="Total Containers"
+            value={stats.total}
+            variant="default"
+            size="md"
+          />
+          <StatsCard
+            icon={<Ship style={{ fontSize: 18 }} />}
+            title="In Transit"
+            value={stats.inTransit}
+            variant="info"
+            size="md"
+          />
+          <StatsCard
+            icon={<MapPin style={{ fontSize: 18 }} />}
+            title="Arrived"
+            value={stats.arrived}
+            variant="success"
+            size="md"
+          />
+          <StatsCard
+            icon={<AlertTriangle style={{ fontSize: 18 }} />}
+            title="Demurrage Risk"
+            value={stats.demurrageRisk}
+            variant={stats.demurrageRisk > 0 ? "error" : "default"}
+            size="md"
+          />
+          <StatsCard
+            icon={<TrendingUp style={{ fontSize: 18 }} />}
+            title="Avg Capacity"
+            value={`${stats.avgCapacity}%`}
+            variant="warning"
+            size="md"
+          />
+        </DashboardGrid>
+
+        {/* Filters */}
+        <DashboardPanel title="Search & Filter" description="Find containers quickly">
+          <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <FormField
+                label=""
+                placeholder="Container #, tracking #, vessel…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Package style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
+              />
+            </div>
+            <Button type="submit" variant="outline" size="sm" icon={<Search className="w-4 h-4" />} className="w-full shrink-0 sm:w-auto">
+              Search
+            </Button>
+          </form>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '12px'}} className="hidden sm:block">
+            <SavedFilterPresets
+              storageKey="containers"
+              currentFilters={{ status: statusFilter, search: searchQuery }}
+              onApplyPreset={(filters) => {
+                if (filters.status) setStatusFilter(filters.status);
+                if (typeof filters.search === 'string') setSearchQuery(filters.search);
+              }}
+            />
+          </JXBox>
+        </DashboardPanel>
+
+        {/* Status Filter Carousel */}
+        <div className="pt-1 pb-1">
+          <StatusFilterPills
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'demurrage_risk', label: stats.demurrageRisk > 0 ? `Demurrage Risk (${stats.demurrageRisk})` : 'Demurrage Risk', color: '#EF4444' },
+              { value: 'CREATED', label: 'Created', color: '#6B7280' },
+              { value: 'WAITING_FOR_LOADING', label: 'Waiting for Loading', color: '#F59E0B' },
+              { value: 'LOADED', label: 'Loaded', color: '#3B82F6' },
+              { value: 'IN_TRANSIT', label: 'In Transit', color: '#6366F1' },
+              { value: 'ARRIVED_PORT', label: 'Arrived Port', color: '#10B981' },
+              { value: 'CUSTOMS_CLEARANCE', label: 'Customs', color: '#F97316' },
+              { value: 'RELEASED', label: 'Released', color: '#14B8A6' },
+              { value: 'CLOSED', label: 'Closed', color: '#4B5563' },
+            ]}
+            selectedValue={statusFilter}
+            onSelect={(val) => {
+              setStatusFilter(val);
+            }}
+          />
+        </div>
+
+        {/* Container Grid */}
+        <DashboardPanel title={loading ? 'All Containers (…)' : `All Containers (${displayedContainers.length})`} fullHeight>
+          {loading ? (
+            <CompactSkeleton />
+          ) : containers.length === 0 ? (
+            <EmptyState
+              icon={<Package />}
+              title="No containers found"
+              description={searchQuery || statusFilter !== 'all' ? "No containers match your search or status filter criteria" : (isAdmin ? "Create your first container to get started" : "You have no containers with your shipments yet")}
+              action={
+                searchQuery || statusFilter !== 'all' ? (
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center'}}>
+                    <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                      Clear Filters
+                    </Button>
+                    {isAdmin && (
+                      <Button href="/dashboard/containers/new" variant="primary" size="sm" icon={<Package className="w-4 h-4" />}>
+                        New Container
+                      </Button>
+                    )}
+                  </JXBox>
+                ) : isAdmin ? (
+                  <Button href="/dashboard/containers/new" variant="primary" icon={<Package className="w-4 h-4" />}>
+                    Create First Container
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : showBulkTable ? (
+            <DataTable
+              data={displayedContainers}
+              columns={containerColumns}
+              keyField="id"
+              selectable={isAdmin}
+              onRowClick={(row) => setQuickPeekContainerId(row.id)}
+              onDelete={isAdmin ? handleBulkDelete : undefined}
+              onExport={isAdmin ? handleBulkExport : undefined}
+              bulkStatusOptions={containerStatusOptions}
+              onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
+            />
+          ) : (
+            <>
+              <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {displayedContainers.map((container, index) => (
+                  <JXBox padding="none" border={false} key={container.id} onClick={() => router.push(`/dashboard/containers/${container.id}`)} className="hover:-translate-y-1 hover:!shadow-[0_20px_40px_rgba(var(--text-primary-rgb),0.12)]" style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 12px 30px rgba(var(--text-primary-rgb), 0.08)', padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease'}}>
+                    {/* Header */}
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '12px', marginBottom: '16px'}} className="flex-col sm:flex-row items-stretch sm:items-start">
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', whiteSpace: 'nowrap', minWidth: 0}}>
+                              {container.containerNumber}
+                            </p>
+                            <span onClick={(e) => e.stopPropagation()} style={{flexShrink: 0}}>
+                              <CopyButton value={container.containerNumber} label="Container #" />
+                            </span>
+                          </JXBox>
+                          {container.trackingNumber && (
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px'}}>
+                              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace'}}>
+                                {container.trackingNumber}
+                              </p>
+                              <span onClick={(e) => e.stopPropagation()}>
+                                <CopyButton value={container.trackingNumber} label="Tracking #" />
+                              </span>
+                            </JXBox>
+                          )}
+                          {container.trackingEvents?.[0]?.source && (
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px'}} onClick={(e) => e.stopPropagation()}>
+                              <TrackingSourceBadge source={container.trackingEvents[0].source} size="xs" />
+                            </JXBox>
+                          )}
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}} className="block sm:hidden">
+                          <StatusBadge status={container.status} size="sm" />
+                        </JXBox>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}} className="justify-end sm:justify-start">
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}} className="hidden sm:block">
+                          <StatusBadge status={container.status} size="sm" />
+                        </JXBox>
+                        <IconButton icon={<Compass style={{ width: 16, height: 16 }} />} ariaLabel="Track route on Ocean Map" variant="ghost" size="sm" onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveOceanContainerId(container.id);
+                            setShowOceanTracker(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            toast.info(`Tracking route for container ${container.containerNumber}`);
+                          }} title="Track route on Ocean Map" style={{color: 'var(--text-secondary)'}} />
+                        <IconButton icon={<Layers style={{ width: 16, height: 16 }} />} ariaLabel="2D Visual Load Planner" variant="ghost" size="sm" onClick={(e) => {
+                            e.stopPropagation();
+                            setPlannerContainer(container);
+                          }} title="2D Visual Load Planner" style={{color: 'var(--text-secondary)'}} />
+                        <IconButton icon={<PanelRightOpen style={{ width: 16, height: 16 }} />} ariaLabel="Quick peek container manifest" variant="ghost" size="sm" onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickPeekContainerId(container.id);
+                          }} title="Quick peek container manifest" style={{color: 'var(--text-secondary)'}} />
+                        <IconButton icon={<MoreVertical style={{ fontSize: 18 }} />} ariaLabel="Container actions" variant="ghost" size="sm" onClick={(e) => handleMenuOpen(e, container)} style={{color: 'var(--text-secondary)'}} />
+                      </JXBox>
+                    </JXBox>
+
+                    {/* Progress */}
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                        <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                          Progress
+                        </p>
+                        <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)'}}>
+                          {container.progress}%
+                        </p>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{width: '100%', height: '6px', borderRadius: '8px', backgroundColor: 'var(--background)', overflow: 'hidden'}}>
+                        <JXBox padding="none" border={false} style={{borderRadius: 0, width: `${container.progress}%`, height: '100%', backgroundColor: 'var(--accent-gold)', transition: 'width 0.3s ease'}} />
+                      </JXBox>
+                    </JXBox>
+
+                    {/* Demurrage & Free-Time Risk Indicator */}
+                    {(() => {
+                      const demurrage = getContainerDemurrageInfo(container);
+                      if (!demurrage.badgeLabel) return null;
+
+                      return (
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '12px'}}>
+                          <Tooltip title={demurrage.tooltipText}>
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border font-medium ${demurrage.colorClass}`}>
+                              {demurrage.level === 'critical' ? (
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              ) : demurrage.level === 'warning' ? (
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                              ) : demurrage.level === 'approaching' ? (
+                                <Compass className="w-3.5 h-3.5 shrink-0" />
+                              ) : (
+                                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                              <span>{demurrage.badgeLabel}</span>
+                            </div>
+                          </Tooltip>
+                        </JXBox>
+                      );
+                    })()}
+
+                    {/* Details */}
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px'}}>
+                      {container.vesselName && (
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <Ship style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                            {container.vesselName}
+                          </p>
+                        </JXBox>
+                      )}
+                      {container.destinationPort && (
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <MapPin style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                            {container.destinationPort}
+                          </p>
+                        </JXBox>
+                      )}
+                      {container.estimatedArrival && (
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <Calendar style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                            ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
+                          </p>
+                        </JXBox>
+                      )}
+                    </JXBox>
+
+                    {/* Stats */}
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
+                        <Package style={{ fontSize: 14, color: 'var(--accent-gold)' }} />
+                        <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)'}}>
+                          {container._count.shipments}/{container.maxCapacity}
+                        </p>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
+                          <FileText style={{ fontSize: 12 }} />
+                          <span>{container._count.documents}</span>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
+                          <DollarSign style={{ fontSize: 12 }} />
+                          <span>{container._count.expenses}</span>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
+                          <Receipt style={{ fontSize: 12 }} />
+                          <span>{container._count.invoices}</span>
+                        </JXBox>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
+                ))}
+              </DashboardGrid>
+            </>
+          )}
+        </DashboardPanel>
+
+        {/* Quick Actions Menu */}
+        <AnchoredMenu anchorEl={anchorEl} onClose={handleMenuClose}>
+          <AnchoredMenuItem onClick={() => {
+              if (selectedContainer) {
+                setActiveOceanContainerId(selectedContainer.id);
+                setShowOceanTracker(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                toast.info(`Tracking route for container ${selectedContainer.containerNumber}`);
+              }
+              handleMenuClose();
+            }}>
+            <Compass style={{ width: 16, height: 16, marginRight: 12, color: '#3B82F6' }} />
+            Track Ocean Route
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={() => {
+              if (selectedContainer) {
+                setPlannerContainer(selectedContainer);
+              }
+              handleMenuClose();
+            }}>
+            <Layers style={{ width: 16, height: 16, marginRight: 12, color: 'var(--accent-gold)' }} />
+            2D Load Planner
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={() => {
+              if (selectedContainer) {
+                setQuickPeekContainerId(selectedContainer.id);
+              }
+              handleMenuClose();
+            }}>
+            <PanelRightOpen style={{ width: 16, height: 16, marginRight: 12 }} />
+            Quick Peek
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={handleViewContainer}>
+            <Eye style={{ fontSize: 16, marginRight: 12 }} />
+            Full Details
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={async () => {
+              if (selectedContainer) {
+                const cid = selectedContainer.id;
+                const cnum = selectedContainer.containerNumber;
+                handleMenuClose();
+                try {
+                  toast.info(`Refreshing tracking for ${cnum}...`);
+                  const res = await fetch('/api/containers/sync-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ containerId: cid }),
+                  });
+                  const d = await res.json();
+                  if (d.success) {
+                    toast.success(d.message || 'Tracking refreshed successfully!');
+                    await fetchContainers();
+                  } else {
+                    toast.error(d.error || 'Tracking sync failed');
+                  }
+                } catch {
+                  toast.error('Failed to sync tracking');
+                }
+              }
+            }}>
+            <RefreshCw style={{ width: 16, height: 16, marginRight: 12 }} />
+            Refresh Tracking
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={() => {
+              if (selectedContainer) handleOpenQR(selectedContainer);
+              handleMenuClose();
+            }}>
+            <QrCode style={{ width: 16, height: 16, marginRight: 12 }} />
+            Yard QR Label
+          </AnchoredMenuItem>
+          {session?.user?.role === 'admin' && (
+            <AnchoredMenuItem onClick={handleDuplicateContainer}>
+              <Copy style={{ fontSize: 16, marginRight: 12 }} />
+              Duplicate
+            </AnchoredMenuItem>
+          )}
+          {session?.user?.role === 'admin' && <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{marginTop: '4px', marginBottom: '4px', borderColor: 'var(--border)'}} />}
+          {session?.user?.role === 'admin' && (
+            <AnchoredMenuItem onClick={handleDeleteContainer} danger>
+              <Trash2 style={{ fontSize: 16, marginRight: 12 }} />
+              Delete
+            </AnchoredMenuItem>
+          )}
+        </AnchoredMenu>
+
+        {/* Slide-over Quick Peek Drawer */}
+        <ContainerQuickPeek
+          containerId={quickPeekContainerId}
+          open={Boolean(quickPeekContainerId)}
+          onClose={() => setQuickPeekContainerId(null)}
+        />
+
+        {/* 2D Visual Container Load Planner Modal */}
+        {plannerContainer && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--panel)] shadow-2xl border border-[var(--border)]">
+              <ContainerLoadPlanner
+                containerNumber={plannerContainer.containerNumber}
+                containerType="40ft_hc"
+                containersList={containers.map((c) => ({
+                  id: c.id,
+                  containerNumber: c.containerNumber,
+                  capacity: `${c.currentCount}/${c.maxCapacity}`,
+                }))}
+                selectedContainerId={plannerContainer.id}
+                onSelectContainer={(id) => {
+                  const target = containers.find((c) => c.id === id);
+                  if (target) {
+                    setPlannerContainer(target);
+                    toast.info(`Switched to container ${target.containerNumber}`);
+                  }
+                }}
+                onClose={() => setPlannerContainer(null)}
+                onSave={() => setPlannerContainer(null)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Yard QR Code & Thermal Label Modal */}
+        <QRCodeModal
+          open={Boolean(qrModalData)}
+          onClose={() => setQrModalData(null)}
+          data={qrModalData}
+        />
+      </DashboardSurface>
+    </ProtectedRoute>
+  );
+}
