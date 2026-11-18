@@ -63,7 +63,7 @@ export function generateInspectionReportPDF(
   doc.setTextColor(...COLORS.white);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('JACXI SHIPPING & LOGISTICS', margin + 6, currentY + 12);
+  doc.text('AMPRATOR SHIPPING & LOGISTICS', margin + 6, currentY + 12);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
@@ -335,7 +335,7 @@ export function generateInspectionReportPDF(
   doc.setFontSize(6.8);
   doc.setTextColor(127, 29, 29);
   const legalClause =
-    'This Vehicle Condition Report certifies the physical state and cosmetic condition of the above-referenced unit upon intake at the Jacxi Shipping facility. All pre-existing damages noted herein are strictly excluded from marine transit insurance claims against the freight forwarder, loading stevedores, and vessel operators. Signatures below verify the vehicle was inspected jointly by the carrier driver and yard receiving staff. Any damages contested must be submitted in writing within 24 hours of container discharge at the destination port.';
+    'This Vehicle Condition Report certifies the physical state and cosmetic condition of the above-referenced unit upon intake at the Amprator Shipping facility. All pre-existing damages noted herein are strictly excluded from marine transit insurance claims against the freight forwarder, loading stevedores, and vessel operators. Signatures below verify the vehicle was inspected jointly by the carrier driver and yard receiving staff. Any damages contested must be submitted in writing within 24 hours of container discharge at the destination port.';
   const splitText = doc.splitTextToSize(legalClause, pageWidth - margin * 2 - 8);
   doc.text(splitText, margin + 4, currentY + 10);
 
@@ -384,7 +384,7 @@ export function generateInspectionReportPDF(
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.textMuted);
   doc.text(
-    `JACXI Shipping • Verified Electronic Custody Document • Hash: ${inspection.reportNumber}`,
+    `Amprator Shipping • Verified Electronic Custody Document • Hash: ${inspection.reportNumber}`,
     pageWidth / 2,
     pageHeight - 6,
     { align: 'center' }
@@ -399,5 +399,5 @@ export function downloadInspectionReportPDF(
 ): void {
   const doc = generateInspectionReportPDF(inspection, shipment);
   const cleanVin = (shipment.vehicleVIN || 'VEHICLE').slice(-8);
-  doc.save(`JACXI-Condition-Report-${cleanVin}-${inspection.reportNumber}.pdf`);
+  doc.save(`Amprator-Condition-Report-${cleanVin}-${inspection.reportNumber}.pdf`);
 }

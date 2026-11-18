@@ -9,7 +9,7 @@ import {
 
 describe('Site Branding System', () => {
   it('should have default branding values defined', () => {
-    assert.strictEqual(DEFAULT_SITE_BRANDING.companyName, 'JACXI SHIPPING');
+    assert.strictEqual(DEFAULT_SITE_BRANDING.companyName, 'AMPRATOR SHIPPING');
     assert.strictEqual(DEFAULT_SITE_BRANDING.logoUrl, '/main-logo.png');
     assert.strictEqual(DEFAULT_SITE_BRANDING.headerLogoUrl, '/higher-logo.png');
     assert.strictEqual(DEFAULT_SITE_BRANDING.faviconUrl, '/favicon.png');

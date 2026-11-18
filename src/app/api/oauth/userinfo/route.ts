@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       sub: auth.user?.id || 'jacxi-mcp-user',
-      name: auth.user?.name || 'Jacxi Shipping User',
+      name: auth.user?.name || 'Amprator Shipping User',
       email: auth.user?.email || 'info@jacxishipping.com',
       picture: auth.user?.picture || null,
       role: auth.user?.role || 'admin',

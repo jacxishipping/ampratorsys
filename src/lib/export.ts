@@ -447,7 +447,7 @@ export function exportToPrintableManifest({
     </tbody>
   </table>
   <div class="footer">
-    <div>JACXI Shipping Logistics System &bull; Fast, Global Auto Freight</div>
+    <div>Amprator Shipping Logistics System &bull; Fast, Global Auto Freight</div>
     <div>Generated ${new Date().toLocaleString()} &bull; Page 1 of 1</div>
   </div>
   <script>

@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
             : 'Respond in clear, natural English.';
 
     const systemPrompt = [
-      'You are the JACXI Shipping & Logistics Live Voice Call Assistant (Google Voice & Gemini Live).',
+      'You are the Amprator Shipping & Logistics Live Voice Call Assistant (Google Voice & Gemini Live).',
       'Speak naturally, concisely, and warmly as a live human-like voice agent on a phone call.',
       'Keep your answer to 1 to 3 clear spoken sentences with no markdown symbols, asterisks, or bullet points.',
       langInstruction,
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
           : '';
       const dest = payloadContext.destinationPort || 'the destination port';
       const eta = payloadContext.eta || 'on schedule';
-      spokenReply = `Hello ${payloadContext.customerName || 'there'}, this is JACXI Shipping Live Voice. ${vehicle}${vin} is currently moving${container} toward ${dest}, with an estimated arrival of ${eta}. How else can I assist you on this call?`;
+      spokenReply = `Hello ${payloadContext.customerName || 'there'}, this is Amprator Shipping Live Voice. ${vehicle}${vin} is currently moving${container} toward ${dest}, with an estimated arrival of ${eta}. How else can I assist you on this call?`;
     }
 
     return NextResponse.json({

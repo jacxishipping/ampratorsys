@@ -18,7 +18,7 @@ const footerNavigation = {
     { name: 'Customer portal', href: '/auth/signin' },
   ],
   company: [
-    { name: 'About JACXI', href: '/#about' },
+    { name: 'About Amprator', href: '/#about' },
     { name: 'Our process', href: '/#process' },
     { name: 'Corridor routes', href: '/#route' },
   ],
@@ -78,7 +78,7 @@ export default function Footer() {
               Premium vehicle logistics from North America to Afghanistan. Flawless handling through trusted corridors.
             </p>
             <div className="flex gap-x-6">
-               <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">© 2026 JACXI SHIPPING</span>
+               <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">© 2026 AMPRATOR SHIPPING</span>
             </div>
           </div>
           

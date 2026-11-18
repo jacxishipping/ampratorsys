@@ -143,7 +143,7 @@ async function generateInboundAiSpeech(question: string, callerId?: string | nul
   }
 
   const prompt = [
-    'You are JACXI Shipping & Logistics live inbound phone assistant.',
+    'You are Amprator Shipping & Logistics live inbound phone assistant.',
     'Answer in 1 to 3 short, natural spoken sentences suitable for a phone call.',
     'Do not use markdown, asterisks, or bullet points.',
     `Caller phone: ${callerPhone || 'Unknown'}.`,
@@ -221,7 +221,7 @@ async function generateInboundAiSpeech(question: string, callerId?: string | nul
     return clipVoiceReply(dbContext, 480);
   }
 
-  return 'Thank you for calling JACXI Shipping. Please say the last 6 digits of your VIN, your container number, or press 1 for shipment tracking, 2 for finance status, or 3 for your recent vehicles.';
+  return 'Thank you for calling Amprator Shipping. Please say the last 6 digits of your VIN, your container number, or press 1 for shipment tracking, 2 for finance status, or 3 for your recent vehicles.';
 }
 
 function renderInteractiveGather(
@@ -246,7 +246,7 @@ function renderInteractiveGather(
       },
       say(promptText),
     ) +
-      say('We did not hear a response. Thank you for calling JACXI Shipping. Goodbye.') +
+      say('We did not hear a response. Thank you for calling Amprator Shipping. Goodbye.') +
       hangup(),
   );
 }
@@ -274,7 +274,7 @@ async function handleReceiveRequest(request: NextRequest) {
       entityType: 'TWILIO_CALL',
       entityId: payload.callSid || `inbound_${Date.now()}`,
       actorUserId: caller?.id || 'system_twilio_inbound',
-      summary: `Inbound Twilio call received from ${fromPhone || 'Unknown'} to ${payload.to || 'JACXI Line'}`,
+      summary: `Inbound Twilio call received from ${fromPhone || 'Unknown'} to ${payload.to || 'Amprator Line'}`,
       metadata: {
         direction: 'inbound',
         callSid: payload.callSid,
@@ -286,7 +286,7 @@ async function handleReceiveRequest(request: NextRequest) {
     }).catch(() => null);
 
     const personalGreeting = caller?.name ? `Hello ${caller.name}! ` : '';
-    const welcomeText = `${personalGreeting}Welcome to JACXI Shipping and Logistics. You can speak your question, VIN, or container number right now, or press 1 to track a shipment, press 2 for your account balance, press 3 for recent vehicles, or press 0 to enter an 8 digit access code.`;
+    const welcomeText = `${personalGreeting}Welcome to Amprator Shipping and Logistics. You can speak your question, VIN, or container number right now, or press 1 to track a shipment, press 2 for your account balance, press 3 for recent vehicles, or press 0 to enter an 8 digit access code.`;
 
     return renderInteractiveGather(request, welcomeText, caller?.id, fromPhone);
   }
@@ -296,7 +296,7 @@ async function handleReceiveRequest(request: NextRequest) {
   const speech = payload.speechResult.trim();
 
   if (digits === '9') {
-    return twimlResponse(say('Thank you for calling JACXI Shipping and Logistics. Goodbye.') + hangup());
+    return twimlResponse(say('Thank you for calling Amprator Shipping and Logistics. Goodbye.') + hangup());
   }
 
   if (digits === '0') {
@@ -308,7 +308,7 @@ async function handleReceiveRequest(request: NextRequest) {
   if (digits === '4' && caller?.id && (await isGeminiLiveConfigured())) {
     const streamUrl = buildVoiceLiveStreamUrl(request);
     return twimlResponse(
-      say('Connecting you to the JACXI Gemini Live audio stream now. Speak naturally after the tone.') +
+      say('Connecting you to the Amprator Gemini Live audio stream now. Speak naturally after the tone.') +
         connectStream(streamUrl, [{ name: 'userId', value: caller.id }]) +
         say('The live audio stream has ended. Goodbye.') +
         hangup(),

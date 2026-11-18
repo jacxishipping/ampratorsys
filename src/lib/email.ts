@@ -148,7 +148,7 @@ function renderEmailLayout({
                           </div>
                         </td>
                         <td align="right" style="vertical-align:top; width:88px; padding-left:12px;">
-                          <img src="${escapeHtml(logoUrl)}" alt="Jacxi Shipping" width="78" height="78" style="display:block; width:78px; height:78px; border-radius:12px; object-fit:cover; border:1px solid rgba(255,255,255,0.35); background:#FFFFFF;" />
+                          <img src="${escapeHtml(logoUrl)}" alt="Amprator Shipping" width="78" height="78" style="display:block; width:78px; height:78px; border-radius:12px; object-fit:cover; border:1px solid rgba(255,255,255,0.35); background:#FFFFFF;" />
                         </td>
                       </tr>
                     </table>
@@ -173,7 +173,7 @@ function renderEmailLayout({
                 <tr>
                   <td style="padding:16px 24px 22px; border-top:1px solid ${EMAIL_THEME.border}; color:${EMAIL_THEME.textSecondary}; font-size:12px; line-height:1.5;">
                     <div>${escapeHtml(footerNote || 'Questions? Contact support@jacxishipping.com.')}</div>
-                    <div style="margin-top:4px;">Jacxi Shipping • Premium Logistics Workspace</div>
+                    <div style="margin-top:4px;">Amprator Shipping • Premium Logistics Workspace</div>
                   </td>
                 </tr>
               </table>
@@ -354,10 +354,10 @@ export async function sendShipmentCreatedEmail({
     return await sendConfiguredEmail({
       from: 'notifications@jacxishipping.com',
       to,
-      subject: 'Shipment Created - Jacxi Shipping',
+      subject: 'Shipment Created - Amprator Shipping',
       html: renderEmailLayout({
-        preheader: 'Your shipment has been created and is now active in Jacxi Shipping.',
-        eyebrow: 'JACXI OPERATIONS',
+        preheader: 'Your shipment has been created and is now active in Amprator Shipping.',
+        eyebrow: 'AMPRATOR OPERATIONS',
         title: 'Shipment created successfully',
         intro: `Hello ${userName}, your vehicle shipment has been added to our system.`,
         contentHtml: `

@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     {
-      service: 'Jacxi Shipping Simple Gemini Gateway',
+      service: 'Amprator Shipping Simple Gemini Gateway',
       description: 'Plug-and-play Function Calling endpoint for Google Gemini API and Gemini Live',
       endpoint: `${baseUrl}/api/gemini`,
       tools: getGeminiTools(),
@@ -67,7 +67,7 @@ API_URL = "${baseUrl}/api/gemini"
 HEADERS = {"Authorization": "Bearer YOUR_MCP_API_KEY"}
 
 def search_vin(vin: str, includeTracking: bool = True):
-    """Search for a vehicle in Jacxi Shipping by VIN or lot number."""
+    """Search for a vehicle in Amprator Shipping by VIN or lot number."""
     return requests.post(API_URL, headers=HEADERS, json={
         "name": "search_vin",
         "args": {"vin": vin, "includeTracking": includeTracking}

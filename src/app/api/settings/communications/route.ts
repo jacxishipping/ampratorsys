@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     if (payload.channel === 'whatsapp') {
       const waResult = await sendConfiguredWhatsApp({
         to: payload.to,
-        body: '✅ *JACXI Shipping & Logistics*\n\nYour WhatsApp Business communication channel is active and verified.\n\n🌐 https://www.jacxishipping.com/tracking',
+        body: '✅ *Amprator Shipping & Logistics*\n\nYour WhatsApp Business communication channel is active and verified.\n\n🌐 https://www.ampratorsys.com/tracking',
       });
 
       if (!waResult.success) {

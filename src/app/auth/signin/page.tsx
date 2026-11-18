@@ -280,7 +280,7 @@ function SignInPageContent() {
 						</form>
 
 						{/* Access hint — there is no public self-registration;
-						    new customer accounts are created by the Jacxi team. */}
+						    new customer accounts are created by the Amprator team. */}
 						<div style={{ textAlign: 'center', paddingTop: 16 }}>
 							<p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
 								Need access to a customer portal?{' '}

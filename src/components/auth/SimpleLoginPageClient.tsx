@@ -102,7 +102,7 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 							<div style={{ textAlign: 'center', marginBottom: 24 }}>
 								<div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
 									{activeLogoUrl ? (
-										<img src={activeLogoUrl} alt="Jacxi Shipping logo" style={{ width: 72, height: 72, borderRadius: 20, objectFit: 'contain', backgroundColor: '#ffffff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 10px 24px rgba(15,23,42,0.10)' }} />
+										<img src={activeLogoUrl} alt="Amprator Shipping logo" style={{ width: 72, height: 72, borderRadius: 20, objectFit: 'contain', backgroundColor: '#ffffff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 10px 24px rgba(15,23,42,0.10)' }} />
 									) : (
 										<SiteMark size={72} />
 									)}
@@ -214,7 +214,7 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 						<div style={{ textAlign: 'center', marginBottom: 36, display: 'grid', gap: 11.2 }}>
 							<div style={{ display: 'flex', justifyContent: 'center' }}>
 								{activeLogoUrl ? (
-									<img src={activeLogoUrl} alt={`${brand.companyLabel || branding.companyName || 'Jacxi'} logo`} style={{ width: 84, height: 84, borderRadius: 32, objectFit: 'contain', backgroundColor: 'rgba(255,255,255,0.92)', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 18px 34px rgba(15,23,42,0.12)' }} />
+									<img src={activeLogoUrl} alt={`${brand.companyLabel || branding.companyName || 'Amprator'} logo`} style={{ width: 84, height: 84, borderRadius: 32, objectFit: 'contain', backgroundColor: 'rgba(255,255,255,0.92)', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 18px 34px rgba(15,23,42,0.12)' }} />
 								) : (
 									<div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 84, height: 84, borderRadius: 32, backgroundColor: `rgba(${brand.accentRgb}, 0.14)`, color: brand.accentColor, boxShadow: `0 16px 32px rgba(${brand.accentRgb},0.16)` }}>
 										<VpnKey size={40} style={{ color: brand.accentColor }} />

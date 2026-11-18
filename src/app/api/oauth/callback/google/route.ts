@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'access_denied',
-          error_description: `No Jacxi Shipping account found for ${email}.`,
+          error_description: `No Amprator Shipping account found for ${email}.`,
         },
         { status: 403 }
       );

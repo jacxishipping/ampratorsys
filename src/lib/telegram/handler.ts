@@ -209,10 +209,10 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
     await telegramClient.sendMessage(
       chatId,
       [
-        '📞 <b>Jacxi Shipping Customer Care:</b>',
+        '📞 <b>Amprator Shipping Customer Care:</b>',
         '━━━━━━━━━━━━━━━━━━━━━',
         `🌐 <b>Website:</b> ${APP_URL}`,
-        '📧 <b>Email:</b> support@jacxishipping.com',
+        '📧 <b>Email:</b> support@ampratorsys.com',
         '🕒 <b>Support Hours:</b> Mon - Sat (8:00 AM - 7:00 PM)',
       ].join('\n'),
       {
@@ -241,7 +241,7 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
         [
           `🎉 <b>Welcome, ${escapeHtml(matchedUser.name || matchedUser.email)}!</b>`,
           '━━━━━━━━━━━━━━━━━━━━━',
-          '✅ <b>Authentication Successful!</b> Your Telegram is now securely linked with your Jacxi Shipping account.',
+          '✅ <b>Authentication Successful!</b> Your Telegram is now securely linked with your Amprator Shipping account.',
           '',
           `👤 <b>Customer:</b> ${escapeHtml(matchedUser.name || 'Account Holder')}`,
           `📧 <b>Email:</b> ${escapeHtml(matchedUser.email)}`,
@@ -265,7 +265,7 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
           '❌ <b>Invalid Access Code</b>',
           '',
           `The code <code>${escapeHtml(candidateCode)}</code> was not recognized in our system.`,
-          'Please verify the 8-digit code from your Jacxi Shipping dashboard or invoice and try again.',
+          'Please verify the 8-digit code from your Amprator Shipping dashboard or invoice and try again.',
         ].join('\n'),
         {
           parse_mode: 'HTML',
@@ -281,7 +281,7 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
   await telegramClient.sendMessage(
     chatId,
     [
-      '🚢 <b>Welcome to Jacxi Shipping Assistant!</b>',
+      '🚢 <b>Welcome to Amprator Shipping Assistant!</b>',
       '━━━━━━━━━━━━━━━━━━━━━',
       'Track your ocean containers, inspect vehicle arrival & warehouse condition photos, and monitor your invoices directly in Telegram.',
       '',
@@ -551,7 +551,7 @@ async function sendAccountInfo(chatId: number, user: TelegramLinkedUser): Promis
 
 async function sendHelpMessage(chatId: number, isAuthenticated: boolean): Promise<void> {
   const text = [
-    '🤖 <b>Jacxi Shipping Bot Manual:</b>',
+    '🤖 <b>Amprator Shipping Bot Manual:</b>',
     '━━━━━━━━━━━━━━━━━━━━━',
     '/shipments - Interactive vehicle cards & carousel',
     '/photos - High-res arrival & inspection photo albums',

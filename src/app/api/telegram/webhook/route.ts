@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'online',
-    service: 'Jacxi Shipping Telegram Bot Webhook',
+    service: 'Amprator Shipping Telegram Bot Webhook',
     timestamp: new Date().toISOString(),
   });
 }

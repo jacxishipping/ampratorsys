@@ -151,7 +151,7 @@ export async function sendShipmentWorkflowNotifications(
       const trackingUrl = `${baseUrl.replace(/\/$/, '')}${cleanLink}`;
 
       const messageBody = [
-        `🚢 *JACXI Shipping — Milestone Update*`,
+        `🚢 *Amprator Shipping — Milestone Update*`,
         ``,
         `Hello *${customerName}*,`,
         ``,
@@ -162,7 +162,7 @@ export async function sendShipmentWorkflowNotifications(
         `🔗 *Live Tracking Link*:`,
         `${trackingUrl}`,
         ``,
-        `_JACXI Global Logistics & Auto Transport_`,
+        `_Amprator Global Logistics & Auto Transport_`,
       ].join('\n');
 
       try {

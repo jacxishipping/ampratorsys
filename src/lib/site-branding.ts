@@ -8,7 +8,7 @@ export interface SiteBrandingConfig {
 }
 
 export const DEFAULT_SITE_BRANDING: SiteBrandingConfig = {
-  companyName: 'JACXI SHIPPING',
+  companyName: 'AMPRATOR SHIPPING',
   companyTagline: 'Vehicle Logistics',
   logoUrl: '/main-logo.png',
   headerLogoUrl: '/higher-logo.png',

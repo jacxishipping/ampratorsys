@@ -45,7 +45,7 @@ const logoConfig: Record<SiteLogoVariant, { src: string; width: number; height: 
 };
 
 function SiteMarkFallback({ size, className, label }: { size: number; className?: string; label?: string }) {
-  const initial = (label?.trim() || 'J').charAt(0).toUpperCase();
+  const initial = (label?.trim() || 'A').charAt(0).toUpperCase();
 
   return (
     <div
@@ -80,7 +80,7 @@ export function SiteMark({ size = 40, className, priority = false }: SiteMarkPro
   return (
     <Image
       src={markSrc}
-      alt={`${branding.companyName || 'Jacxi Shipping'} icon`}
+      alt={`${branding.companyName || 'Amprator Shipping'} icon`}
       width={size}
       height={size}
       priority={priority}
@@ -110,7 +110,7 @@ export default function SiteLogo({ variant = 'header', theme = 'light', classNam
     setHasError(false);
   }, [activeSrc]);
 
-  const companyName = branding.companyName || 'JACXI SHIPPING';
+  const companyName = branding.companyName || 'AMPRATOR SHIPPING';
   const companyTagline = branding.companyTagline !== undefined ? branding.companyTagline : (config.caption || '');
 
   const fallbackTextClassName = theme === 'dark' ? 'text-white' : 'text-[var(--text-primary)]';

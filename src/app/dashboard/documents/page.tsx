@@ -436,11 +436,11 @@ export default function DocumentsPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h3 className="text-base font-bold text-[var(--text-primary)]">Official Announcement & Circular Generator</h3>
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                                    Jacxi Shipping Letterhead
+                                    Amprator Shipping Letterhead
                                 </span>
                             </div>
                             <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-2xl leading-relaxed">
-                                Generate official Jacxi Shipping announcements and news documents in PDF matching the company letterhead. Simply enter Date, Title, and Body text to print or export.
+                                Generate official Amprator Shipping announcements and news documents in PDF matching the company letterhead. Simply enter Date, Title, and Body text to print or export.
                             </p>
                         </div>
                     </div>
@@ -620,7 +620,7 @@ export default function DocumentsPage() {
 			{activeTab === 'invoices' && (
 				<DashboardPanel
 					title="Official Invoices"
-					description="Real-time letterhead invoices generated in the system. Click Preview to view, print, or download official Jacxi Shipping invoices."
+					description="Real-time letterhead invoices generated in the system. Click Preview to view, print, or download official Amprator Shipping invoices."
 					actions={
 						<Button
 							variant="outline"

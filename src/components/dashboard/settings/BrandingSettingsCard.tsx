@@ -29,7 +29,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
   const { branding, updateBranding, resetBranding, uploadLogo, isLoading } = useSiteBranding();
 
   const [form, setForm] = useState({
-    companyName: branding.companyName || 'JACXI SHIPPING',
+    companyName: branding.companyName || 'AMPRATOR SHIPPING',
     companyTagline: branding.companyTagline || 'Vehicle Logistics',
     logoUrl: branding.logoUrl || '/main-logo.png',
   });
@@ -44,7 +44,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
 
   useEffect(() => {
     setForm({
-      companyName: branding.companyName || 'JACXI SHIPPING',
+      companyName: branding.companyName || 'AMPRATOR SHIPPING',
       companyTagline: branding.companyTagline || 'Vehicle Logistics',
       logoUrl: branding.logoUrl || '/main-logo.png',
     });
@@ -104,7 +104,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
       }
 
       await updateBranding({
-        companyName: form.companyName.trim() || 'JACXI SHIPPING',
+        companyName: form.companyName.trim() || 'AMPRATOR SHIPPING',
         companyTagline: form.companyTagline.trim(),
         logoUrl: finalLogoUrl,
         headerLogoUrl: finalLogoUrl,
@@ -124,7 +124,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
 
   const handleReset = async () => {
     if (!canEdit) return;
-    if (!window.confirm('Reset company logo and branding back to default JACXI assets?')) {
+    if (!window.confirm('Reset company logo and branding back to default Amprator assets?')) {
       return;
     }
 
@@ -133,7 +133,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
       await resetBranding();
       setPendingFile(null);
       setLocalPreviewUrl(null);
-      toast.success('Branding reset to default Jacxi logo');
+      toast.success('Branding reset to default Amprator logo');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to reset branding');
     } finally {
@@ -230,7 +230,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900 tracking-tight">
-                        {form.companyName || 'JACXI SHIPPING'}
+                        {form.companyName || 'AMPRATOR SHIPPING'}
                       </div>
                       <div className="text-[10px] text-slate-500">
                         {form.companyTagline || 'Vehicle Logistics'}
@@ -324,7 +324,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
               <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                 Company Display Name
               </label>
-              <input value={form.companyName} onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))} placeholder="e.g. JACXI SHIPPING" disabled={!canEdit || saving} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" />
+              <input value={form.companyName} onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))} placeholder="e.g. AMPRATOR SHIPPING" disabled={!canEdit || saving} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" />
             </div>
 
             <div className="md:col-span-1">
@@ -363,7 +363,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
                   className="w-full sm:w-auto"
                 >
                   <RotateCcw className="w-4 h-4 mr-1.5" />
-                  Reset to Jacxi Default
+                  Reset to Amprator Default
                 </Button>
               )}
 

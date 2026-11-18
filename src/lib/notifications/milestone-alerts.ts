@@ -51,35 +51,35 @@ export const DEFAULT_MILESTONE_TEMPLATES: Record<MilestoneType, MilestoneTemplat
     label: 'Vehicle Picked Up',
     description: 'Triggered when carrier picks up vehicle from auction (Copart/IAAI/Manheim) or dealer.',
     defaultTemplate:
-      '🚗 *JACXI Shipping*: Hello {customerName}, your *{vehicle}* (VIN: `{vin}`, Lot #{lotNumber}) has been safely picked up from {originPort} and is en route to our warehouse.\n\n🌐 Track live: {trackingUrl}',
+      '🚗 *Amprator Shipping*: Hello {customerName}, your *{vehicle}* (VIN: `{vin}`, Lot #{lotNumber}) has been safely picked up from {originPort} and is en route to our warehouse.\n\n🌐 Track live: {trackingUrl}',
   },
   CONTAINER_LOADED: {
     milestone: 'CONTAINER_LOADED',
     label: 'Container Loaded',
     description: 'Triggered when vehicle is loaded and secured into shipping container.',
     defaultTemplate:
-      '📦 *JACXI Shipping*: Your *{vehicle}* (VIN: `{vin}`) has been loaded into Container *{containerNumber}* and secured for ocean export.\n\n🌐 Track status: {trackingUrl}',
+      '📦 *Amprator Shipping*: Your *{vehicle}* (VIN: `{vin}`) has been loaded into Container *{containerNumber}* and secured for ocean export.\n\n🌐 Track status: {trackingUrl}',
   },
   VESSEL_DEPARTED: {
     milestone: 'VESSEL_DEPARTED',
     label: 'Vessel Departed (Ocean Transit)',
     description: 'Triggered when cargo vessel leaves port of loading.',
     defaultTemplate:
-      '🚢 *JACXI Shipping*: Vessel *{vesselName}* carrying container *{containerNumber}* has departed {originPort}. Estimated arrival at {destinationPort}: *{etaDate}*.\n\n🌐 Track live AIS position: {trackingUrl}',
+      '🚢 *Amprator Shipping*: Vessel *{vesselName}* carrying container *{containerNumber}* has departed {originPort}. Estimated arrival at {destinationPort}: *{etaDate}*.\n\n🌐 Track live AIS position: {trackingUrl}',
   },
   ARRIVED_AT_PORT: {
     milestone: 'ARRIVED_AT_PORT',
     label: 'Arrived at Destination Port',
     description: 'Triggered when vessel docks at destination container terminal.',
     defaultTemplate:
-      '⚓ *JACXI Shipping*: Container *{containerNumber}* carrying your *{vehicle}* has arrived safely at {destinationPort}. Port offloading underway.\n\n🌐 View details: {trackingUrl}',
+      '⚓ *Amprator Shipping*: Container *{containerNumber}* carrying your *{vehicle}* has arrived safely at {destinationPort}. Port offloading underway.\n\n🌐 View details: {trackingUrl}',
   },
   CUSTOMS_CLEARED: {
     milestone: 'CUSTOMS_CLEARED',
     label: 'Customs Cleared & Ready for Release',
     description: 'Triggered when container and vehicles clear customs inspection.',
     defaultTemplate:
-      '✅ *JACXI Shipping*: Customs clearance complete for your *{vehicle}* (VIN: `{vin}`) at {destinationPort}. Your shipment is ready for handover / gatepass pickup!\n\n🌐 View documents: {trackingUrl}',
+      '✅ *Amprator Shipping*: Customs clearance complete for your *{vehicle}* (VIN: `{vin}`) at {destinationPort}. Your shipment is ready for handover / gatepass pickup!\n\n🌐 View documents: {trackingUrl}',
   },
 };
 

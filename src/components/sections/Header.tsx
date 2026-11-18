@@ -58,7 +58,7 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
                   <SiteMark className="relative z-10 h-6 w-6 text-gray-900 group-hover:text-gray-900 transition-colors duration-500" />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">
-                  JACXI
+                  AMPRATOR
                 </span>
               </Link>
             </Magnetic>
@@ -129,7 +129,7 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/30 text-[#D4AF37]">
                     <SiteMark className="h-6 w-6" />
                   </div>
-                  <span className="text-xl font-extrabold tracking-tight text-white">JACXI</span>
+                  <span className="text-xl font-extrabold tracking-tight text-white">AMPRATOR</span>
                 </Link>
                 <SpringButton
                   type="button"

@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in with Google — Jacxi Shipping MCP Gateway</title>
+  <title>Sign in with Google — Amprator Shipping MCP Gateway</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -253,13 +253,13 @@ export async function GET(request: NextRequest) {
     <div class="brand">
       <div class="brand-badge">JX</div>
       <div>
-        <h1>Jacxi Shipping MCP</h1>
+        <h1>Amprator Shipping MCP</h1>
         <div style="font-size: 12px; color: #6B7280;">Google OAuth 2.0 & AI Agent Gateway</div>
       </div>
     </div>
 
     <p class="subtitle">
-      An AI agent (<strong>${escapeHtml(clientId)}</strong>) is requesting permission to connect to your Jacxi Shipping MCP server.
+      An AI agent (<strong>${escapeHtml(clientId)}</strong>) is requesting permission to connect to your Amprator Shipping MCP server.
     </p>
 
     ${errorMsg ? `<div class="error-banner">${escapeHtml(errorMsg)}</div>` : ''}
@@ -370,7 +370,7 @@ export async function POST(request: NextRequest) {
       user: {
         sub: session?.user?.id || session?.user?.email || 'jacxi-mcp-agent',
         email: session?.user?.email || 'info@jacxishipping.com',
-        name: session?.user?.name || 'Jacxi Shipping AI Agent',
+        name: session?.user?.name || 'Amprator Shipping AI Agent',
         picture: session?.user?.image || undefined,
         role: (session?.user as any)?.role || 'admin',
         provider: 'google',

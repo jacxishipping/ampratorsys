@@ -119,7 +119,7 @@ function resolveCorridor(stateCode: string, loadingPoint?: string | null): Corri
 }
 
 export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions): string {
-  const companyName = options.companyName || 'JACXI SHIPPING';
+  const companyName = options.companyName || 'AMPRATOR SHIPPING';
   const companyType = options.companyType || 'Shipping';
   const priceListName = options.priceListName || 'Active Rate Sheet';
   const destinationLabel = options.destinationLabel || 'Mersin';
@@ -1077,7 +1077,7 @@ export function openPrintDocument(html: string): void {
 }
 
 export function generateTransitPriceListPrintHtml(options: PrintTransitPriceListOptions): string {
-  const companyName = options.companyName || 'JACXI SHIPPING';
+  const companyName = options.companyName || 'AMPRATOR SHIPPING';
   const destinationLabel = options.destinationLabel || 'Islam Qala (Herat)';
   const origin = options.origin || 'Mersin, Turkey & Jebel Ali, UAE';
   const effectiveDate = options.effectiveFrom || options.effectiveDate || '1 October 2026';

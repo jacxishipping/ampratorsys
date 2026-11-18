@@ -29,7 +29,7 @@ const testimonials = [
 		name: 'Zahra A.',
 		location: 'Mazar-i-Sharif',
 		rating: 5,
-		text: 'My family sent a car from California. Took about 7 weeks total. Driver was nice and brought it right to our house. Thank you Jacxi!',
+		text: 'My family sent a car from California. Took about 7 weeks total. Driver was nice and brought it right to our house. Thank you Amprator!',
 		vehicle: '2017 Lexus RX',
 	},
 ];

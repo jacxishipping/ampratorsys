@@ -1,9 +1,9 @@
 {
   "schema_version": "v1",
-  "name_for_human": "Jacxi Shipping",
-  "name_for_model": "jacxishipping",
-  "description_for_human": "Search vehicle shipments by VIN or lot number and track ocean freight containers with Jacxi Shipping.",
-  "description_for_model": "Plugin for Jacxi Shipping web app. Allows searching vehicle shipments by VIN, lot number, or shipment ID; searching ocean containers by container number, booking number, or tracking number; and obtaining real-time tracking milestones.",
+  "name_for_human": "Amprator Shipping",
+  "name_for_model": "ampratorshipping",
+  "description_for_human": "Search vehicle shipments by VIN or lot number and track ocean freight containers with Amprator Shipping.",
+  "description_for_model": "Plugin for Amprator Shipping web app. Allows searching vehicle shipments by VIN, lot number, or shipment ID; searching ocean containers by container number, booking number, or tracking number; and obtaining real-time tracking milestones.",
   "auth": {
     "type": "oauth",
     "client_url": "https://www.jacxishipping.com/api/oauth/authorize",

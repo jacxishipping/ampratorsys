@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
         salutation: `Consignee: ${shipment.user?.name || shipment.user?.email || 'Authorized Bearer'}`,
         bodyText: bodyLines,
         closingNote:
-          'Authorized by Jacxi Shipping Operations — Verify token authenticity at www.jacxishipping.com',
+          'Authorized by Amprator Shipping Operations — Verify token authenticity at www.ampratorsys.com',
         direction: 'ltr',
       });
 
@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
         title: `Official Shipment Receipt & Expense Statement — ${vehicleTitle}`,
         salutation: `Prepared for: ${shipment.user?.name || shipment.user?.email}`,
         bodyText,
-        closingNote: 'Thank you for shipping with Jacxi Shipping.',
+        closingNote: 'Thank you for shipping with Amprator Shipping.',
         direction: 'ltr',
       });
 
@@ -304,7 +304,7 @@ export async function GET(request: NextRequest) {
         title: `Official Container Manifest — ${container.containerNumber}`,
         salutation: `Shipping Line: ${container.shippingLine || 'Ocean Carrier'} | POD: ${container.destinationPort || 'Destination'}`,
         bodyText,
-        closingNote: 'Certified Cargo Manifest — Jacxi Shipping International Logistics',
+        closingNote: 'Certified Cargo Manifest — Amprator Shipping International Logistics',
         direction: 'ltr',
       });
 
@@ -392,7 +392,7 @@ export async function GET(request: NextRequest) {
         title: `Customer Financial Statement — ${user.name || user.email}`,
         salutation: `Prepared for: ${user.name || user.email}`,
         bodyText,
-        closingNote: 'Thank you for your business with Jacxi Shipping.',
+        closingNote: 'Thank you for your business with Amprator Shipping.',
         direction: 'ltr',
       });
 
@@ -410,7 +410,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 7. Fallback query-param announcement document
-    const title = searchParams.get('title') || 'Jacxi Shipping Official Document';
+    const title = searchParams.get('title') || 'Amprator Shipping Official Document';
     const bodyText = searchParams.get('bodyText') || searchParams.get('body') || '';
     const badgeText = searchParams.get('badgeText') || 'IMPORTANT NOTICE';
     const salutation = searchParams.get('salutation') || 'Dear Valued Customer,';

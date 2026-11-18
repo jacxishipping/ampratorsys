@@ -72,7 +72,7 @@ export function generateCustomsPacketPDF(
   doc.setTextColor(212, 175, 55); // gold
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('JACXI SHIPPING & MARITIME LOGISTICS', 18, 16);
+  doc.text('AMPRATOR SHIPPING & MARITIME LOGISTICS', 18, 16);
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
@@ -131,8 +131,8 @@ export function generateCustomsPacketPDF(
 
   const agentRows = [
     ['Customs Clearing Agent', agentInfo?.agentName || 'Jebel Ali Port Clearing & Forwarding Services', 'Destination Port', agentInfo?.clearingPort || container.destinationPort || 'Jebel Ali Terminal 2 (AEJEA)'],
-    ['Agent Contact / Email', agentInfo?.agentEmail || 'customs@jacxishipping.com', 'Agent Telephone', agentInfo?.agentPhone || '+971 4 881 5000'],
-    ['Primary Consignee', agentInfo?.consigneeName || 'Jacxi International Logistics LLC', 'Clearance Type', 'Commercial Vehicle Import / Transit Release'],
+    ['Agent Contact / Email', agentInfo?.agentEmail || 'customs@ampratorsys.com', 'Agent Telephone', agentInfo?.agentPhone || '+971 4 881 5000'],
+    ['Primary Consignee', agentInfo?.consigneeName || 'Amprator International Logistics LLC', 'Clearance Type', 'Commercial Vehicle Import / Transit Release'],
   ];
 
   autoTable(doc, {
@@ -232,7 +232,7 @@ export function generateCustomsPacketPDF(
     doc.line(18, pageHeight - 12, pageWidth - 18, pageHeight - 12);
     doc.setFontSize(7);
     doc.setTextColor(COLORS.textMuted);
-    doc.text(`Jacxi Shipping Logistics LLC • Export Customs Packet • Container ${container.containerNumber}`, 18, pageHeight - 7);
+    doc.text(`Amprator Shipping Logistics LLC • Export Customs Packet • Container ${container.containerNumber}`, 18, pageHeight - 7);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - 35, pageHeight - 7);
   }
 

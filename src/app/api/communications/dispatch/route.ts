@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const channel = (body.channel || 'whatsapp') as 'whatsapp' | 'sms' | 'email';
     const to = String(body.to || '').trim();
     const message = String(body.message || '').trim();
-    const subject = String(body.subject || 'JACXI Shipping Update').trim();
+    const subject = String(body.subject || 'Amprator Shipping Update').trim();
 
     if (!message) {
       return NextResponse.json({ message: 'Message content cannot be empty.' }, { status: 400 });
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
       const htmlBody = `
         <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
           <div style="background: #080c14; color: #ffffff; padding: 20px 24px; border-bottom: 3px solid #DDA853;">
-            <div style="font-size: 18px; font-weight: 800; letter-spacing: 0.04em;">JACXI SHIPPING & LOGISTICS</div>
+            <div style="font-size: 18px; font-weight: 800; letter-spacing: 0.04em;">AMPRATOR SHIPPING & LOGISTICS</div>
             <div style="font-size: 12px; color: #DDA853; margin-top: 4px;">Global Auto Export & Container Freight</div>
           </div>
           <div style="padding: 24px; color: #1e293b; font-size: 14px; line-height: 1.65; white-space: pre-wrap;">${message

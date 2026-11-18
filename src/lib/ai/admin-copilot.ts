@@ -273,7 +273,7 @@ export async function getSystemOverviewTool(): Promise<{ reply: string; actionCa
 
   const card: ActionCard = {
     type: 'OVERVIEW',
-    title: 'JACXI Shipping Operations Brief',
+    title: 'Amprator Shipping Operations Brief',
     subtitle: 'Real-time platform operations and financial summary',
     badge: { label: 'System Live', tone: 'success' },
     metrics: [
@@ -751,7 +751,7 @@ export async function draftWhatsAppUpdateTool(
 
   const statusLabel = statusIcons[shipment.status] || `📦 *${shipment.status}*`;
 
-  const draftMessage = `🚗 *JACXI Shipping Milestone Notification*
+  const draftMessage = `🚗 *Amprator Shipping Milestone Notification*
 Dear ${customerName},
 
 We are pleased to provide an update on your vehicle shipment:
@@ -764,8 +764,8 @@ ${note ? `• *Note:* ${note}` : ''}
 
 🔗 Track live updates: https://app.jacxishipping.com/tracking?vin=${shipment.vehicleVIN || ''}
 
-Thank you for choosing JACXI Shipping!
-_JACXI Automated Operations Logistics_`;
+Thank you for choosing Amprator Shipping!
+_Amprator Automated Operations Logistics_`;
 
   const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(draftMessage)}` : undefined;
 
@@ -1373,7 +1373,7 @@ export async function processAdminCopilotMessage(
   // 3. TokenRouter LLM Intelligence for Complex Operational Queries
   if (await isTokenRouterConfigured()) {
     try {
-      const systemPrompt = `You are the JACXI Shipping Operations Copilot for administrators.
+      const systemPrompt = `You are the Amprator Shipping Operations Copilot for administrators.
 You have authority to inspect and orchestrate logistics across vehicle intake, ocean containerization, towing dispatches, overland transits, invoicing, customer ledgers, and WhatsApp updates.
 
 Available internal tools:
@@ -1535,7 +1535,7 @@ Otherwise, provide an expert, concise operational answer in Markdown.`;
 
   // 4. Fallback / General Assistant guidance
   return {
-    reply: `👋 Hello ${user.name || 'Admin'}! I am your **JACXI Operations Copilot**. I can execute tasks across the entire admin panel:
+    reply: `👋 Hello ${user.name || 'Admin'}! I am your **Amprator Operations Copilot**. I can execute tasks across the entire admin panel:
 
 - 🔍 **Search & Track:** Look up any 17-digit VIN, lot number, or container (e.g. \`CAAU5189072\`).
 - ⚡ **Update Shipments:** Type \`update status of [VIN] to LOADED\` or \`mark [VIN] as DELIVERED\`.

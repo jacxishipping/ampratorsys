@@ -65,7 +65,7 @@ async function resolveTwilioCredentials() {
 
 function cleanSpeechMessage(raw: string) {
   return raw
-    .replace(/https?:\/\/\S+/g, 'our online tracking portal at jacxi shipping dot com')
+    .replace(/https?:\/\/\S+/g, 'our online tracking portal at amprator shipping dot com')
     .replace(/[*_`~#]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -92,7 +92,7 @@ async function generateOutboundFollowupReply(
   }
 
   const prompt = [
-    'You are JACXI Shipping & Logistics live voice assistant on an outbound call to a customer.',
+    'You are Amprator Shipping & Logistics live voice assistant on an outbound call to a customer.',
     'Answer the customer question in 1 to 3 clear spoken sentences with no markdown or special characters.',
     `Customer Name: ${customerName || 'Valued Customer'}.`,
     dbContext,
@@ -167,7 +167,7 @@ async function generateOutboundFollowupReply(
 
   return dbContext
     ? clipVoiceReply(dbContext, 480)
-    : 'Thank you. Our JACXI operations team has noted your question and is monitoring your shipment.';
+    : 'Thank you. Our Amprator operations team has noted your question and is monitoring your shipment.';
 }
 
 async function handleTwimlExecution(request: NextRequest) {
@@ -195,7 +195,7 @@ async function handleTwimlExecution(request: NextRequest) {
   if (step === 'deliver') {
     const spokenAnnouncement = cleanSpeechMessage(
       msg ||
-        `Hello ${customerName}, this is a live automated call from JACXI Shipping and Logistics with an update on your vehicle shipment.`,
+        `Hello ${customerName}, this is a live automated call from Amprator Shipping and Logistics with an update on your vehicle shipment.`,
     );
 
     const followUpPrompt = `${spokenAnnouncement}. If you have any questions about this shipment, please speak after the tone, press 1 to hear this message again, or press 9 to end the call.`;
@@ -211,7 +211,7 @@ async function handleTwimlExecution(request: NextRequest) {
         },
         say(followUpPrompt),
       ) +
-        say('Thank you for shipping with JACXI Shipping and Logistics. Goodbye.') +
+        say('Thank you for shipping with Amprator Shipping and Logistics. Goodbye.') +
         hangup(),
     );
   }
@@ -231,7 +231,7 @@ async function handleTwimlExecution(request: NextRequest) {
 
   const normDigits = normalizeVoiceDigits(digits);
   if (normDigits === '9') {
-    return twimlResponse(say('Thank you for shipping with JACXI. Goodbye.') + hangup());
+    return twimlResponse(say('Thank you for shipping with Amprator. Goodbye.') + hangup());
   }
 
   if (normDigits === '1' && !speechResult) {
@@ -242,7 +242,7 @@ async function handleTwimlExecution(request: NextRequest) {
 
   const question = speechResult.trim() || normDigits;
   if (!question) {
-    return twimlResponse(say('Thank you for shipping with JACXI Shipping and Logistics. Goodbye.') + hangup());
+    return twimlResponse(say('Thank you for shipping with Amprator Shipping and Logistics. Goodbye.') + hangup());
   }
 
   const aiReply = await generateOutboundFollowupReply(question, vin, shipmentId, customerName);
@@ -257,7 +257,7 @@ async function handleTwimlExecution(request: NextRequest) {
       },
       say(`${aiReply} Do you have any other questions, or press 9 to end the call?`),
     ) +
-      say('Thank you for shipping with JACXI. Goodbye.') +
+      say('Thank you for shipping with Amprator. Goodbye.') +
       hangup(),
   );
 }

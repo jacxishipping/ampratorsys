@@ -184,7 +184,7 @@ export function AdminCopilotDrawer() {
       id: 'welcome',
       role: 'assistant',
       content:
-        '👋 Welcome to the **JACXI Admin Copilot**! I can search and update shipments, check container manifests, query customer ledgers, draft WhatsApp milestone alerts, manage dispatches, and check damage reports across the entire platform.\n\nType a command or pick a quick action below:',
+        '👋 Welcome to the **Amprator Admin Copilot**! I can search and update shipments, check container manifests, query customer ledgers, draft WhatsApp milestone alerts, manage dispatches, and check damage reports across the entire platform.\n\nType a command or pick a quick action below:',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages([welcomeMsg]);
@@ -518,7 +518,7 @@ export function AdminCopilotDrawer() {
                 ) : (
                   <>
                     <Sparkles className="h-3 w-3 text-amber-400" />
-                    <span>JACXI Copilot</span>
+                    <span>Amprator Copilot</span>
                     {m.toolExecuted && (
                       <span className="rounded bg-amber-500/10 px-1 py-0.2 text-[9px] font-mono text-amber-400 border border-amber-500/20">
                         {m.toolExecuted}
@@ -674,7 +674,7 @@ export function AdminCopilotDrawer() {
             </button>
           </form>
           <div className="mt-1.5 flex items-center justify-between text-[10px] text-[var(--text-secondary)] px-1">
-            <span>Powered by JACXI AI Operations Engine</span>
+            <span>Powered by Amprator AI Operations Engine</span>
             <span>Shortcut: <strong>Ctrl + J</strong></span>
           </div>
         </div>

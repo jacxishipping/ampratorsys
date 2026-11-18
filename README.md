@@ -1,4 +1,4 @@
-# Jacxi Shipping Platform
+# Amprator Shipping Platform
 
 Vehicle shipping operations platform for importing vehicles from the USA/Canada to
 Afghanistan (Mersin and UAE routes): auction sourcing (Copart/IAAI), containerization,
