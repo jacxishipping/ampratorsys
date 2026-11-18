@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { DashboardGrid, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, StatusBadge, toast } from '@/components/design-system';
-import type { AutomationSettingsValues } from '@/lib/settings/automation-settings';
-import { DEFAULT_AUTOMATION_SETTINGS } from '@/lib/settings/automation-settings';
+import type { AutomationSettingsValues } from '@/lib/settings/automation-settings-types';
+import { DEFAULT_AUTOMATION_SETTINGS } from '@/lib/settings/automation-settings-types';
 
 export function AutomationSettingsTab() {
   const [settings, setSettings] = useState<AutomationSettingsValues>(DEFAULT_AUTOMATION_SETTINGS);
