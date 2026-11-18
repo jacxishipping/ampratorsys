@@ -376,7 +376,7 @@ function TrackingPageInner() {
 							</p>
 							<p className="text-sm text-black/60">
 								Need help?{' '}
-								<a href="/#contact" className="text-[#8D7A1F] hover:underline font-semibold">Contact our team</a>
+								<a href="mailto:support@ampratorsys.com" className="text-[#8D7A1F] hover:underline font-semibold">Contact our team</a>
 							</p>
 						</div>
 					</motion.div>
@@ -582,14 +582,14 @@ function TrackingPageInner() {
 									<h3 className="text-xl font-extrabold tracking-tight">Need help with your shipment?</h3>
 									<p className="text-white/60 text-sm font-medium mt-1">Our team is available to assist you at every step.</p>
 								</div>
-								<Link
-									href="/#contact"
+								<a
+									href="mailto:support@ampratorsys.com"
 									className="group relative inline-flex h-12 items-center justify-center gap-3 overflow-hidden rounded-full bg-white px-7 font-bold text-gray-900 transition-all duration-500 hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)] flex-shrink-0"
 								>
 									<div className="absolute inset-0 translate-y-full bg-[#D4AF37] transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:translate-y-0" />
 									<span className="relative z-10 transition-colors duration-500 group-hover:text-gray-900">Contact us</span>
 									<ArrowRight className="relative z-10 w-4 h-4 -rotate-45 group-hover:rotate-0 transition-transform duration-300" />
-								</Link>
+								</a>
 							</div>
 						</motion.div>
 					</div>

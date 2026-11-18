@@ -286,7 +286,7 @@ function SignInPageContent() {
 								Need access to a customer portal?{' '}
 								<button
 									type="button"
-									onClick={() => router.push('/#contact')}
+									onClick={() => { window.location.href = 'mailto:support@ampratorsys.com'; }}
 									className="hover:text-[#6B5C17]"
 									style={{ background: 'none', border: 'none',
 										color: '#8D7A1F', fontWeight: 600, minHeight: 36, paddingLeft: 8, paddingRight: 8, paddingTop: 4, paddingBottom: 4, display: 'inline-flex', alignItems: 'center', cursor: 'pointer', transition: 'color 0.2s ease' }}
