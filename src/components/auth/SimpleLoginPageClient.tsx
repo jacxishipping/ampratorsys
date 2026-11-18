@@ -30,7 +30,12 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
 	const brand = useMemo(() => getPortalBrandIdentity(portal), [portal]);
-	const activeLogoUrl = brand.logoUrl || branding.logoUrl;
+	const rawLogoUrl = brand.logoUrl || branding.logoUrl;
+	const activeLogoUrl = rawLogoUrl === '/main-logo.png'
+		? '/amprator-logo.png'
+		: rawLogoUrl === '/higher-logo.png'
+		? '/amprator-logo-hd.png'
+		: rawLogoUrl;
 	const callbackUrl = searchParams.get('callbackUrl');
 	const redirectTarget = callbackUrl || (portal?.id ? `/portal/${portal.id}` : '/dashboard');
 	const staffLoginHref = useMemo(() => {

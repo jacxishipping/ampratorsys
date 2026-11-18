@@ -25,21 +25,21 @@ type SiteMarkProps = {
 const logoConfig: Record<SiteLogoVariant, { src: string; width: number; height: number; labelClassName: string; caption?: string }> = {
   header: {
     src: siteBrandAssets.headerLogo,
-    width: 186,
+    width: 140,
     height: 56,
     labelClassName: 'text-sm font-bold uppercase tracking-[0.22em] sm:text-base',
   },
   main: {
     src: siteBrandAssets.mainLogo,
-    width: 232,
-    height: 108,
+    width: 200,
+    height: 200,
     labelClassName: 'text-2xl font-bold tracking-tight',
     caption: 'Vehicle Logistics',
   },
   dashboard: {
     src: siteBrandAssets.headerLogo,
-    width: 132,
-    height: 40,
+    width: 120,
+    height: 120,
     labelClassName: 'text-lg font-bold tracking-tight',
   },
 };
@@ -65,7 +65,8 @@ export function SiteMark({ size = 40, className, priority = false }: SiteMarkPro
   const [hasError, setHasError] = useState(false);
   const { branding } = useSiteBranding();
 
-  const markSrc = branding.faviconUrl || branding.logoUrl || siteBrandAssets.favicon;
+  const rawMarkSrc = branding.faviconUrl || branding.logoUrl || siteBrandAssets.favicon;
+  const markSrc = rawMarkSrc === '/main-logo.png' ? '/amprator-logo.png' : rawMarkSrc;
 
   useEffect(() => {
     setHasError(false);
@@ -97,13 +98,23 @@ export default function SiteLogo({ variant = 'header', theme = 'light', classNam
   const config = logoConfig[variant];
 
   const activeSrc = useMemo(() => {
+    let resolved = config.src;
     if (variant === 'dashboard') {
-      return branding.headerLogoUrl || branding.logoUrl || config.src;
+      resolved = branding.headerLogoUrl || branding.logoUrl || config.src;
+    } else if (variant === 'header') {
+      resolved = branding.headerLogoUrl || branding.logoUrl || config.src;
+    } else {
+      resolved = branding.logoUrl || config.src;
     }
-    if (variant === 'header') {
-      return branding.headerLogoUrl || branding.logoUrl || config.src;
+
+    // Bypass any stale browser HTTP cache of previous logo filenames
+    if (resolved === '/higher-logo.png') {
+      return '/amprator-logo-hd.png';
     }
-    return branding.logoUrl || config.src;
+    if (resolved === '/main-logo.png') {
+      return '/amprator-logo.png';
+    }
+    return resolved;
   }, [branding.headerLogoUrl, branding.logoUrl, config.src, variant]);
 
   useEffect(() => {

@@ -78,8 +78,12 @@ export async function saveStoredSiteBranding(
       if (existsSync(localSourcePath)) {
         const mainLogoDest = join(publicDir, 'main-logo.png');
         const higherLogoDest = join(publicDir, 'higher-logo.png');
+        const ampratorLogoDest = join(publicDir, 'amprator-logo.png');
+        const ampratorHdDest = join(publicDir, 'amprator-logo-hd.png');
         await copyFile(localSourcePath, mainLogoDest).catch(() => null);
         await copyFile(localSourcePath, higherLogoDest).catch(() => null);
+        await copyFile(localSourcePath, ampratorLogoDest).catch(() => null);
+        await copyFile(localSourcePath, ampratorHdDest).catch(() => null);
       }
     }
   } catch (err) {

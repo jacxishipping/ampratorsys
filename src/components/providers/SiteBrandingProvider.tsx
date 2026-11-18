@@ -14,7 +14,7 @@ interface SiteBrandingContextValue {
 
 const SiteBrandingContext = createContext<SiteBrandingContextValue | undefined>(undefined);
 
-const BRANDING_STORAGE_KEY = 'jacxi_site_branding_cache';
+const BRANDING_STORAGE_KEY = 'amprator_site_branding_cache_v2';
 const BRANDING_UPDATE_EVENT = 'site-branding-updated';
 
 export function SiteBrandingProvider({ children }: { children: React.ReactNode }) {

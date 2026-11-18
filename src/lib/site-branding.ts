@@ -17,8 +17,8 @@ export const DEFAULT_SITE_BRANDING: SiteBrandingConfig = {
 
 export const siteBrandAssets = {
   favicon: '/favicon.png',
-  headerLogo: '/higher-logo.png',
-  mainLogo: '/main-logo.png',
+  headerLogo: '/amprator-logo-hd.png',
+  mainLogo: '/amprator-logo.png',
 } as const;
 
 export const siteBrandAssetFiles = {
